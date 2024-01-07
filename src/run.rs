@@ -26,6 +26,7 @@ impl StandardRunner {
         }
     }
 
+    #[cfg(target_os = "linux")]
     pub fn run(&self, executable_script: &Vec<u8>, input: &Vec<u8>) -> RunResult {
         let id = Uuid::new_v4().to_string();
         let run_path = format!("{}/{}", self.setting.dir, id);
