@@ -1,0 +1,10 @@
+[compile_setting]
+dir = "compile"
+
+[compile_setting.languages]
+"C++" = ["g++", "cpp", "infile", "-o", "outfile", "-O2"]
+
+[run_setting]
+memory_limit_KB = 1048576
+cpu_limit_ms = 10000
+dir = "run"
