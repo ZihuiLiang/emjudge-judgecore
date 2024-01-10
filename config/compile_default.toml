@@ -1,0 +1,2 @@
+[languages]
+"C++" = ["g++", ".cpp", "infile", "-o", "outfile", "-O2"]

@@ -1,0 +1,2 @@
+memory_limit_KB = 2097152
+cpu_limit_ms = 10000 

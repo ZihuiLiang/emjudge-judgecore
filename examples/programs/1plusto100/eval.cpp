@@ -2,11 +2,6 @@
 using namespace std;
 
 int main() {
-    long long input_size;
-    fread(&input_size, 1, sizeof(input_size), stdin);
-    char input[input_size];
-    fread(input, 1, input_size, stdin);
-
     long long test_out_size;
     fread(&test_out_size, 1, sizeof(test_out_size), stdin);
     char test_out[test_out_size];
@@ -27,16 +22,16 @@ int main() {
     }
 
     if (test_out_size != std_out_size) {
-        printf("WA\n");
+        printf("WA");
         return 0;
     }
 
     for (int i = 0; i < test_out_size; i ++) {
         if (test_out[i] != std_out[i]) {
-            printf("WA\n");
+            printf("WA");
             return 0;
         }
     }
-    printf("AC\n");
+    printf("AC");
     return 0;
 }

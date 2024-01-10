@@ -1,26 +1,21 @@
 use std::{fs::File, io::Read};
 
-use emjudge_judgecore::{compile, settings, run};
+use emjudge_judgecore::program::RawCode;
 
 fn main() {
-    let settings = settings::Settings::new();
-    let compiler = compile::Compiler::new(&settings.compile_setting);
     let mut script = vec![];
-    let input  = vec![];
-    File::open("examples/programs/loop.cpp").unwrap().read_to_end(&mut script).unwrap();
+    File::open("examples/programs/loop.cpp")
+        .unwrap()
+        .read_to_end(&mut script)
+        .unwrap();
     println!("Compiling...");
-    match compiler.compile(&String::from("C++"), &script) {
-        compile::CompileResult::OK(executable_script) => {
-            println!("Finish");
-            println!("Running...");
-            let runner = run::StandardRunner::new(&settings::RunSetting{memory_limit_KB: 1024 * 1024, cpu_limit_ms: 5000, dir: settings.run_setting.dir});
-            println!("{:?}", runner.run(&executable_script, &input));
-        },
-        compile::CompileResult::CompileError(result) => {
-            println!("Compile Error:\n{}", result);
-        }
-        compile::CompileResult::NoSuchLanguage => {
-            println!("Compile Error:\n{}", "No such language");
-        }
+    let result = RawCode::new(script).compile(String::from("C++"));
+    if let Ok(execode) = result {
+        println!("OK");
+        println!("Running");
+        let result = execode.run_to_end(vec![], Some(1000), None);
+        println!("{:?}", result);
+        println!("output:\n{:?}", String::from_utf8(result.1.stdout).unwrap());
+        println!("stderr:\n{:?}", String::from_utf8(result.1.stderr).unwrap());
     }
 }

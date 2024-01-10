@@ -1,4 +1,3 @@
-pub mod compile;
-pub mod run;
+pub mod program;
 pub mod settings;
 pub mod test;
