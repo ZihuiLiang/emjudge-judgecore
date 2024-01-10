@@ -1,6 +1,6 @@
 [package]
 name = "emjudge-judgecore"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 
 description = "Emjudge-Judgecore is a comprehensive library designed for the evaluation and testing of executing programs against specific specifications. Offering a robust judging system, it provides the framework for running and assessing programs within defined criteria, making it an essential tool for comprehensive program evaluation and testing."
