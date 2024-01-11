@@ -1,6 +1,6 @@
 use std::{fs::File, io::Read};
 
-use emjudge_judgecore::program::RawCode;
+use emjudge_judgecore::{program::RawCode, test::OnlyRun};
 
 fn main() {
     let mut script = vec![];
@@ -8,17 +8,14 @@ fn main() {
         .unwrap()
         .read_to_end(&mut script)
         .unwrap();
-    let result = RawCode::new(script)
-        .compile(String::from("C++"))
-        .unwrap()
-        .run_to_end(vec![], None, None);
+    let result = OnlyRun::single(
+        RawCode::new(script),
+        String::from("C++"),
+        None,
+        None,
+        vec![],
+    );
     println!("{:?}", result);
-    println!(
-        "Tested code's stdout:\n{}",
-        String::from_utf8(result.1.stdout).unwrap()
-    );
-    println!(
-        "Tested code's stderr:\n{}",
-        String::from_utf8(result.1.stderr).unwrap()
-    );
+    println!("stdout:\n{:?}", String::from_utf8(result.1.stdout).unwrap());
+    println!("stderr:\n{:?}", String::from_utf8(result.1.stderr).unwrap());
 }

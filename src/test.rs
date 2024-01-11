@@ -1,5 +1,22 @@
 #![allow(non_snake_case)]
 
+pub mod OnlyRun {
+    use crate::program::{ProcessResource, RawCode};
+
+    pub fn single(
+        code: RawCode,
+        language: String,
+        cpu_limit_ms: Option<u64>,
+        memory_limit_KB: Option<u64>,
+        input: Vec<u8>,
+    ) -> (String, ProcessResource) {
+        match code.compile(language) {
+            Ok(exe_code) => exe_code.run_to_end(input, cpu_limit_ms, memory_limit_KB),
+            Err(_) => (String::from("Compile Error"), ProcessResource::default()),
+        }
+    }
+}
+
 pub mod RunAndEval {
     use crate::program::{ProcessResource, RawCode};
 
