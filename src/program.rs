@@ -1,10 +1,12 @@
 #![allow(non_snake_case)]
-use crate::settings::{self, RUN_SETTING};
+use crate::settings::{self, RUN_SETTING, COMPILE_AND_EXE_SETTING};
 use cgroups_rs::cgroup_builder::CgroupBuilder;
 use cgroups_rs::memory::MemController;
 use cgroups_rs::CgroupPid;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs::{self, File};
+use std::hash::Hash;
 use std::io::{Read, Write};
 use std::os::unix::fs::PermissionsExt;
 use std::os::unix::process::CommandExt;
@@ -14,68 +16,95 @@ use std::thread;
 use std::time::{Duration, Instant};
 use tempfile::TempDir;
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct RawCode {
     script: Vec<u8>,
+    language: String, 
 }
 
 impl RawCode {
-    pub fn new(script: Vec<u8>) -> Self {
-        RawCode { script: script }
+    pub fn new(script: Vec<u8>, language: String) -> Self {
+        RawCode { script: script, language: language }
     }
 
-    pub fn compile(&self, language: String) -> Result<ExeCode, String> {
-        match settings::COMPILE_SETTING.languages.get(&language) {
+    pub fn compile(&self) -> Result<ExeCode, String> {
+        let compile_and_exe_script = match settings::COMPILE_AND_EXE_SETTING.languages.get(&self.language) {
+            None => return Err(String::from("No Such Language")),
+            Some(result) => result
+        };
+        let compile_command = match compile_and_exe_script.get(&String::from("compile_command")) {
             None => {
-                return Err(String::from("No Such Language"));
+                let exe_code = match compile_and_exe_script.get(&String::from("exe_code")) {
+                    None => return Err(String::from("Setting Error")),
+                    Some(result) => result
+                };
+                let mut exe_codes = HashMap::new();
+                exe_codes.insert(exe_code.clone(), self.script.clone());
+                return Ok(ExeCode{exe_codes: exe_codes, language: self.language.clone()})
             }
-            Some(compile_script) => {
-                let id = uuid::Uuid::new_v4().simple().to_string();
-                let tmpdir = TempDir::with_prefix(id.as_str()).unwrap();
-                let command = compile_script[0].clone();
-                let suffix = compile_script[1].clone();
-                let mut command_args: Vec<String> = vec![];
-                let dir_path = tmpdir.path().to_owned().clone();
-                let dir_path = dir_path.to_str().unwrap();
-                let in_path = format!("{}/main{}", dir_path, suffix);
-                let out_path = format!("{}/main", dir_path);
-                let mut in_file = File::create(in_path.clone()).unwrap();
-                in_file.write_all(&self.script).unwrap();
-                for i in 2..compile_script.len() {
-                    if compile_script[i] == "infile" {
-                        command_args.push(in_path.clone());
-                    } else if compile_script[i] == "outfile" {
-                        command_args.push(out_path.clone());
-                    } else {
-                        command_args.push(compile_script[i].clone());
-                    }
-                }
-                let mut p = Command::new(command.as_str())
-                    .args(command_args.iter().map(|s| s as &str).collect::<Vec<_>>())
-                    .stderr(Stdio::piped())
-                    .spawn()
-                    .unwrap();
-                let mut stderr_output = String::new();
-                p.stderr
-                    .take()
-                    .unwrap()
-                    .read_to_string(&mut stderr_output)
-                    .unwrap();
-                if stderr_output.is_empty() == false {
-                    return Err(stderr_output.replace(&in_path, &format!("main{}", suffix)));
-                }
-                let mut out_file = File::open(out_path.clone()).unwrap();
-                let mut out_buffer = Vec::new();
-                let _ = out_file.read_to_end(&mut out_buffer);
-                Ok(ExeCode { script: out_buffer })
-            }
+            Some(result) => result
+        };
+        let raw_code = match compile_and_exe_script.get(&String::from("raw_code")) {
+            None => return Err(String::from("Setting Error")),
+            Some(result) => result
+        };
+        let id = uuid::Uuid::new_v4().simple().to_string();
+        let compile_dir = TempDir::with_prefix(id.as_str()).unwrap();
+        let compile_dir_path = compile_dir.path().to_owned().clone();
+        let compile_dir_path = compile_dir_path.to_str().unwrap();
+        let compile_command = compile_command.replace("compile_dir", compile_dir_path);
+        let compile_command = compile_command.as_str();
+        let compile_command_path = format!("{}/compile.sh", compile_dir_path);
+        let compile_command_path = compile_command_path.as_str();
+        let raw_code_path = format!("{}/{}", compile_dir_path, raw_code);
+        let raw_code_path = raw_code_path.as_str();
+        File::create(raw_code_path).unwrap().write_all(&self.script).unwrap();
+        File::create(compile_command_path).unwrap().write_all(compile_command.as_bytes()).unwrap();
+        let mut permissions = fs::metadata(raw_code_path).unwrap().permissions();
+        permissions.set_mode(0o700);
+        fs::set_permissions(&raw_code_path, permissions.clone()).unwrap();
+        let mut permissions = fs::metadata(compile_command_path).unwrap().permissions();
+        permissions.set_mode(0o700);
+        fs::set_permissions(&compile_command_path, permissions.clone()).unwrap();
+        let p = Command::new(compile_command_path)
+            .stdout(Stdio::null())
+            .stderr(Stdio::piped())
+            .spawn();
+        if let Err(result) = p {
+            return Err(result.to_string().replace(&format!("{}/",compile_dir_path), ""));
         }
+        let mut p = p.unwrap();
+        let mut stderr_output = String::new();
+        p.stderr
+            .take()
+            .unwrap()
+            .read_to_string(&mut stderr_output)
+            .unwrap();
+        let mut exe_codes = HashMap::new();
+        for (key, value) in compile_and_exe_script {
+            if key.starts_with("exe_code") {
+                let mut exe_code_file = Vec::new();
+                let exe_code = value.clone();
+                let exe_code_path = format!("{}/{}", compile_dir_path, exe_code);
+                let exe_code_path = exe_code_path.as_str();
+                let _ = match File::open(exe_code_path) {
+                    Ok(mut result) => result.read_to_end(&mut exe_code_file),
+                    Err(_) => return Err(stderr_output.replace(&format!("{}/",compile_dir_path), ""))
+                };
+                exe_codes.insert(exe_code, exe_code_file);
+            }
+        } 
+        if exe_codes.is_empty() {
+            return Err(String::from("Setting Error"));
+        }
+        Ok(ExeCode {exe_codes: exe_codes, language: self.language.clone()})
     }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct ExeCode {
-    script: Vec<u8>,
+    exe_codes: HashMap<String, Vec<u8> >,
+    language: String,
 }
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
@@ -103,57 +132,65 @@ impl ExeCode {
         input: Vec<u8>,
         cpu_limit_ms: Option<u64>,
         memory_limit_KB: Option<u64>,
-    ) -> (String, ProcessResource) {
+    ) -> Result<ProcessResource, (String, ProcessResource)> {
         if fs::read_to_string("/etc/sudoers").is_err() {
-            return (
+            return Err((
                 String::from("Permission Denied"),
-                ProcessResource::default(),
+                ProcessResource::default())
             );
         }
         if cpu_limit_ms.is_some() && cpu_limit_ms.unwrap() > RUN_SETTING.cpu_limit_ms {
-            return (
+            return Err((
                 String::from("Exceed Maximum Time Limit"),
-                ProcessResource::default(),
+                ProcessResource::default())
             );
         }
         if memory_limit_KB.is_some() && memory_limit_KB.unwrap() > RUN_SETTING.memory_limit_KB {
-            return (
+            return Err((
                 String::from("Exceed Maximum Memory Limit"),
-                ProcessResource::default(),
+                ProcessResource::default())
             );
         }
         let cpu_limit_ms = cpu_limit_ms.unwrap_or(RUN_SETTING.cpu_limit_ms);
         let memory_limit_KB = memory_limit_KB.unwrap_or(RUN_SETTING.memory_limit_KB);
+        
+        let compile_and_exe_script = match COMPILE_AND_EXE_SETTING.languages.get(&self.language) {
+            None => return Err((String::from("Setting Error"), ProcessResource::default())),
+            Some(result) => result
+        };
+        let exe_command = match compile_and_exe_script.get(&String::from("exe_command")) {
+            None => return Err((String::from("Setting Error"), ProcessResource::default())),
+            Some(result) => result
+        };
         let id = uuid::Uuid::new_v4().simple().to_string();
-        let tmpdir = TempDir::with_prefix(id.as_str()).unwrap();
         let username = id.clone();
-        let dir_path = tmpdir.path().to_owned().clone();
-        let dir_path = dir_path.to_str().unwrap();
-        let in_path = format!("{}/in", dir_path);
-        let in_path = in_path.as_str();
-        let out_path = format!("{}/out", dir_path);
-        let out_path = out_path.as_str();
-        let err_path = format!("{}/err", dir_path);
-        let err_path = err_path.as_str();
-        let run_path = format!("{}/main", dir_path);
-        let run_path = run_path.as_str();
-        let script_path = format!("{}/run.sh", dir_path);
-        let script_path = script_path.as_str();
-        File::create(run_path)
-            .unwrap()
-            .write_all(&self.script)
-            .unwrap();
-        File::create(in_path).unwrap().write_all(&input).unwrap();
-        File::create(script_path)
-            .unwrap()
-            .write_all(format!("#!/bin/bash\nulimit -s unlimited\n{}", run_path).as_bytes())
-            .unwrap();
-        let mut permissions = fs::metadata(run_path).unwrap().permissions();
-        permissions.set_mode(0o100);
-        fs::set_permissions(&run_path, permissions.clone()).unwrap();
-        let mut permissions = fs::metadata(script_path).unwrap().permissions();
+        let exe_dir = TempDir::with_prefix(id.as_str()).unwrap();
+        let exe_dir_path = exe_dir.path().to_owned().clone();
+        let exe_dir_path = exe_dir_path.to_str().unwrap();
+        let exe_command = exe_command.replace("exe_dir", exe_dir_path);
+        let exe_command = exe_command.as_str();
+        let exe_command_path = format!("{}/exe.sh", exe_dir_path);
+        let exe_command_path = exe_command_path.as_str(); 
+        let stdin_path = format!("{}/stdin", exe_dir_path);
+        let stdin_path = stdin_path.as_str();
+        let stdout_path = format!("{}/stdout", exe_dir_path);
+        let stdout_path = stdout_path.as_str();
+        let stderr_path = format!("{}/stderr", exe_dir_path);
+        let stderr_path = stderr_path.as_str();
+        File::create(stdin_path).unwrap().write_all(&input).unwrap();
+        let mut all_file_path_vec = vec![exe_command_path.to_string()];
+        for (exe_code, script) in &self.exe_codes {
+            let exe_code_path = format!("{}/{}", exe_dir_path, exe_code);
+            File::create(exe_code_path.clone()).unwrap().write_all(&script).unwrap();
+            let mut permissions = fs::metadata(exe_code_path.as_str()).unwrap().permissions();
+            permissions.set_mode(0o700);
+            fs::set_permissions(&exe_code_path, permissions.clone()).unwrap();    
+            all_file_path_vec.push(exe_code_path.clone());  
+        }
+        File::create(exe_command_path).unwrap().write_all(exe_command.as_bytes()).unwrap();
+        let mut permissions = fs::metadata(exe_command_path).unwrap().permissions();
         permissions.set_mode(0o500);
-        fs::set_permissions(&script_path, permissions.clone()).unwrap();
+        fs::set_permissions(&exe_command_path, permissions.clone()).unwrap();
 
         Command::new("sudo")
             .arg("adduser")
@@ -172,7 +209,7 @@ impl ExeCode {
         let _ = Command::new("sudo")
             .arg("chown")
             .arg(format!("{}:{}", username, username))
-            .args(&[run_path, script_path])
+            .args(&all_file_path_vec)
             .spawn()
             .unwrap()
             .wait();
@@ -189,12 +226,14 @@ impl ExeCode {
             .unwrap();
         let memory_controller: &MemController = cgroup.controller_of().unwrap();
         let oom_receiver = memory_controller.register_oom_event("oom").unwrap();
-        let p = Command::new(format!("{}", script_path))
-            .stdin(File::open(in_path).unwrap())
-            .stdout(File::create(out_path).unwrap())
-            .stderr(File::create(err_path).unwrap())
+        
+        let p = Command::new(exe_command_path)
+            .stdin(File::open(stdin_path).unwrap())
+            .stdout(File::create(stdout_path).unwrap())
+            .stderr(File::create(stderr_path).unwrap())
             .uid(uid)
             .spawn();
+
         let start_time = Instant::now();
         match p {
             Err(_) => {
@@ -208,7 +247,7 @@ impl ExeCode {
                     .unwrap()
                     .wait()
                     .unwrap();
-                return (String::from("Runtime Error"), ProcessResource::default());
+                return Err((String::from("Runtime Error"), ProcessResource::default()));
             }
             Ok(mut p) => {
                 cgroup.add_task(CgroupPid::from(p.id() as u64)).unwrap();
@@ -250,11 +289,11 @@ impl ExeCode {
                     .unwrap();
                 let mut output_buff = vec![];
                 let mut err_buff = vec![];
-                File::open(out_path)
+                File::open(stdout_path)
                     .unwrap()
                     .read_to_end(&mut output_buff)
                     .unwrap();
-                File::open(err_path)
+                File::open(stderr_path)
                     .unwrap()
                     .read_to_end(&mut err_buff)
                     .unwrap();
@@ -262,7 +301,7 @@ impl ExeCode {
                     Ok(wait_result) => match wait_result {
                         Ok(runtime_ms) => {
                             if runtime_ms > cpu_limit_ms {
-                                return (
+                                return Err((
                                     String::from("Time Limit Exceed"),
                                     ProcessResource {
                                         memory_KB: memory_KB,
@@ -270,22 +309,21 @@ impl ExeCode {
                                         stdout: output_buff,
                                         stderr: err_buff,
                                     },
-                                );
+                                ));
                             } else {
-                                return (
-                                    String::from("OK"),
+                                return Ok(
                                     ProcessResource {
                                         memory_KB: memory_KB,
                                         runtime_ms: runtime_ms,
                                         stdout: output_buff,
                                         stderr: err_buff,
-                                    },
+                                    }
                                 );
                             }
                         }
                         Err(runtime_ms) => {
                             if oom_receiver.try_recv().is_ok() {
-                                return (
+                                return Err((
                                     String::from("Memory Limit Exceed"),
                                     ProcessResource {
                                         memory_KB: memory_KB,
@@ -293,9 +331,9 @@ impl ExeCode {
                                         stdout: output_buff,
                                         stderr: err_buff,
                                     },
-                                );
+                                ));
                             } else {
-                                return (
+                                return Err((
                                     String::from("Runtime Error"),
                                     ProcessResource {
                                         memory_KB: memory_KB,
@@ -303,7 +341,7 @@ impl ExeCode {
                                         stdout: output_buff,
                                         stderr: err_buff,
                                     },
-                                );
+                                ));
                             }
                         }
                     },
@@ -312,7 +350,7 @@ impl ExeCode {
                             Ok(runtime_ms) => runtime_ms,
                             Err(runtime_ms) => runtime_ms,
                         };
-                        return (
+                        return Err((
                             String::from("Time Limit Exceed"),
                             ProcessResource {
                                 memory_KB: memory_KB,
@@ -320,7 +358,7 @@ impl ExeCode {
                                 stdout: output_buff,
                                 stderr: err_buff,
                             },
-                        );
+                        ));
                     }
                 }
             }

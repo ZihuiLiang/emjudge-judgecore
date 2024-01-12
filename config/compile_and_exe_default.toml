@@ -1,0 +1,17 @@
+[languages."C++"]
+compile_command = """
+#!/bin/bash
+g++ compile_dir/main.cpp -o compile_dir/main"""
+raw_code = "main.cpp"
+exe_file = "main"
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+exe_dir/main"""
+
+[languages.Python3]
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+python3 exe_dir/main.py3"""
+exe_file = "main.py3"

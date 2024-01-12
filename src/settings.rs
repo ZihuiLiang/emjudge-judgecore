@@ -9,35 +9,44 @@ use std::path::PathBuf;
 use toml;
 
 lazy_static! {
-    pub static ref COMPILE_SETTING: CompileSetting = CompileSetting::load();
+    pub static ref COMPILE_AND_EXE_SETTING: CompileAndExeSetting = CompileAndExeSetting::load();
     pub static ref RUN_SETTING: RunSetting = RunSetting::load();
 }
 
 #[serde_as]
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
-pub struct CompileSetting {
-    #[serde(default = "CompileSetting::language_default")]
-    pub languages: HashMap<String, Vec<String>>,
+pub struct CompileAndExeSetting {
+    #[serde(default = "CompileAndExeSetting::language_default")]
+    pub languages: HashMap<String, HashMap<String, String>>,
 }
 
-impl CompileSetting {
-    fn language_default() -> HashMap<String, Vec<String>> {
+impl CompileAndExeSetting {
+    fn language_default() -> HashMap<String, HashMap<String, String>> {
         let mut languages = HashMap::new();
         languages.insert(
             String::from("C++"),
-            vec![
-                String::from("g++"),
-                String::from(".cpp"),
-                String::from("infile"),
-                String::from("-o"),
-                String::from("outfile"),
-                String::from("-O2"),
-            ],
+            {
+                let mut map = HashMap::new();
+                map.insert(String::from("raw_code"), String::from("main.cpp"));
+                map.insert(String::from("compile_command"), String::from("#!/bin/bash\ng++ compile_dir/main.cpp -o compile_dir/main"));
+                map.insert(String::from("exe_file"), String::from("main"));
+                map.insert(String::from("exe_command"), String::from("#!/bin/bash\nulimit -s unlimited\nexe_dir/main"));
+                map
+            }
+        );
+        languages.insert(
+            String::from("Python3"),
+            {
+                let mut map = HashMap::new();
+                map.insert(String::from("exe_file"), String::from("main.py3"));
+                map.insert(String::from("exe_command"), String::from("#!/bin/bash\nulimit -s unlimited\npython3 exe_dir/main.py3"));
+                map
+            }
         );
         languages
     }
     fn default() -> Self {
-        CompileSetting {
+        CompileAndExeSetting {
             languages: Self::language_default(),
         }
     }
@@ -45,11 +54,11 @@ impl CompileSetting {
         let default = Self::default();
         let toml = toml::to_string(&default).unwrap();
         let mut default_toml_file =
-            std::fs::File::create(PathBuf::from("config/compile_default.toml")).unwrap();
+            std::fs::File::create(PathBuf::from("config/compile_and_exe_default.toml")).unwrap();
         let _ = default_toml_file.write_all(toml.as_bytes());
 
         let s = Config::builder()
-            .add_source(config::File::with_name("config/compile").required(true))
+            .add_source(config::File::with_name("config/compile_and_exe").required(true))
             .build();
 
         let result = s.unwrap().try_deserialize();
