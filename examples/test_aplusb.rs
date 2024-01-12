@@ -24,10 +24,10 @@ fn main() {
         .read_to_end(&mut output)
         .unwrap();
     let result = RunAndEval::single(
-        RawCode::new(tested_script,String::from("C++")),
+        RawCode::new(tested_script, String::from("C++")),
         None,
         None,
-        RawCode::new(eval_script,String::from("C++")),
+        RawCode::new(eval_script, String::from("C++")),
         None,
         None,
         input,

@@ -15,6 +15,12 @@ fn main() {
         vec![],
     );
     println!("{:?}", result);
-    println!("stdout:\n{:?}", String::from_utf8(result.clone().unwrap().stdout).unwrap());
-    println!("stderr:\n{:?}", String::from_utf8(result.clone().unwrap().stderr).unwrap());
+    println!(
+        "stdout:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stdout).unwrap()
+    );
+    println!(
+        "stderr:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stderr).unwrap()
+    );
 }

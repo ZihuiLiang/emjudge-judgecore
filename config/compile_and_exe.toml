@@ -1,29 +1,253 @@
-[languages]
-"C++" = {"raw_code" = "main.cpp", "compile_command" = "#!/bin/bash\ng++ compile_dir/main.cpp -o compile_dir/main -static -O2 -lm -w -Wno-unused-result -std=c++2a", "exe_code"="main", "exe_command"="#!/bin/bash\nulimit -s unlimited\nexe_dir/main"}
-"C" = {"raw_code" = "main.c", "compile_command" = "#!/bin/bash\ngcc compile_dir/main.c -o compile_dir/main -O2 -lm -w -Wno-unused-result", "exe_code"="main", "exe_command"="#!/bin/bash\nulimit -s unlimited\nexe_dir/main"}
-"Java" = {"raw_code" = "Main.java", "compile_command" = "#!/bin/bash\ncd compile_dir\njavac Main.java", "exe_code"="Main.class", "exe_command"="#!/bin/bash\nulimit -s unlimited\njava -Xmx4g -Xss256m -cp exe_dir Main"}
-"Python 3" = {"exe_code"="main.py3", "exe_command"="#!/bin/bash\nulimit -s unlimited\npython3 exe_dir/main.py3"}
-"Pypy 3" = {"exe_code"="main.py3", "exe_command"="#!/bin/bash\nulimit -s unlimited\npypy3 exe_dir/main.py3"}
-"Python 2" = {"exe_code"="main.py2", "exe_command"="#!/bin/bash\nulimit -s unlimited\npython2 exe_dir/main.py2"}
-"Ruby" = {"exe_code"="main.rb", "exe_command"="#!/bin/bash\nulimit -s unlimited\nruby exe_dir/main.rb"}
-"Perl" = {"exe_code"="main.pl", "exe_command"="#!/bin/bash\nulimit -s unlimited\nexe_dir/main.pl"}
-"C#" = {"raw_code" = "main.cs", "compile_command" = "#!/bin/bash\nmcs -out:compile_dir/main compile_dir/main.cs", "exe_code" = "main", "exe_command" = "#!/bin/bash\nulimit -s unlimited\nexe_dir/main"}
-"Objective-C" = {"raw_code" = "main.m", "compile_command" = "#!/bin/bash\ngcc -I $(gnustep-config --variable=GNUSTEP_SYSTEM_HEADERS) -L $(gnustep-config --variable=GNUSTEP_SYSTEM_LIBRARIES) -o compile_dir/main compile_dir/main.m -lgnustep-base -fconstant-string-class=NSConstantString -D_NATIVE_OBJC_EXCEPTIONS -Wl,--no-as-needed -lgnustep-base -lobjc", "exe_code" = "main", "exe_command" = "#!/bin/bash\nulimit -s unlimited\nexe_dir/main"}
-"Swift" = {"raw_code" = "main.swift", "compile_command" = "#!/bin/bash\nswiftc compile_dir/main.swift -o compile_dir/main", "exe_code" = "main", "exe_command" = "#!/bin/bash\nulimit -s unlimited\nexe_dir/main"}
-"Go" = {"raw_code" = "main.go", "compile_command" = "#!/bin/bash\ngo build -o compile_dir/main compile_dir/main.go", "exe_code"="main", "exe_command" = "#!/bin/bash\nulimit -s unlimited\nexe_dir/main"}
-"Javascript" = {"exe_code" = "main.js", "exe_command" = "node exe_dir/main.js"}
-"Rust" = {"raw_code" = "main.rs", "compile_command" = "#!/bin/bash\nrustc compile_dir/main.rs -o compile_dir/main", "exe_code"="main", "exe_command" = "#!/bin/bash\nulimit -s unlimited\nexe_dir/main"}
-"Kotlin" = {"raw_code" = "Main.kt", "compile_command" = "#!/bin/bash\ncd compile_dir\nkotlinc Main.kt -include-runtime -d Main.jar", "exe_code"="Main.jar", "exe_command"="#!/bin/bash\nulimit -s unlimited\nkotlin exe_dir/Main.jar"}
-"Julia" = {"exe_code" = "main.jl", "exe_command" = "#!/bin/bash\nulimit -s unlimited\njulia --startup-file=no exe_dir/main.jl"}
-"Fortran" = {"raw_code" = "main.f90", "compile_command" = "#!/bin/bash\ngfortran -o compile_dir/main compile_dir/main.f90 -ffree-form", "exe_code" = "main", "exe_command" = "#!/bin/bash\nulimit -s unlimited\nexe_dir/main"}
-"Lua" = {"exe_code" = "main.lua", "exe_command" = "#!/bin/bash\nulimit -s unlimited\nlua exe_dir/main.lua"}
-"PHP" = {"exe_code" = "main.php", "exe_command" = "#!/bin/bash\nulimit -s unlimited\nphp exe_dir/main.php"}
-"Smalltalk" = {"exe_code" = "main.st", "exe_command" = "#!/bin/bash\nulimit -s unlimited\ngst exe_dir/main.st"}
-"OCaml" = {"raw_code" = "main.ml", "compile_command" = "#!/bin/bash\nocamlc compile_dir/main.ml -o compile_dir/main", "exe_code"="main", "exe_command" = "#!/bin/bash\nulimit -s unlimited\nexe_dir/main"}
-"COBOL" = {"raw_code" = "main.cob", "compile_command" = "#!/bin/bash\ncobc -free -x compile_dir/main.cob -o compile_dir/main", "exe_code"="main", "exe_command" = "#!/bin/bash\nulimit -s unlimited\nexe_dir/main"}
-"Ada" = {"raw_code" = "main.adb", "compile_command" = "#!/bin/bash\ncd compile_dir\ngnatmake -o main main.adb", "exe_code"="main", "exe_command" = "#!/bin/bash\nulimit -s unlimited\nexe_dir/main"}
-"Common LISP" = {"exe_code"="main.lisp", "exe_command" = "#!/bin/bash\nulimit -s unlimited\nsbcl --script exe_dir/main.lisp"}
-"Scala" = {"raw_code" = "Main.scala", "compile_command" = "#!/bin/bash\ncd compile_dir\nscalac -d . Main.scala", "exe_code0"="Main.class", "exe_code1" = "Main$.class", "exe_command" = "#!/bin/bash\nulimit -s unlimited\nscala -classpath exe_dir -J-Xmx4g -J-Xss256m Main"}
-"Tcl" = {"exe_code"="main.tcl", "exe_command" = "#!/bin/bash\nulimit -s unlimited\nexe_dir/main.tcl"}
-"Octave" = {"exe_code"="main.m", "exe_command" = "#!/bin/bash\nulimit -s unlimited\noctave --no-gui --no-window-system exe_dir/main.m"}
-"Pypy 2" = {"exe_code"="main.py2", "exe_command"="#!/bin/bash\nulimit -s unlimited\npypy2 exe_dir/main.py2"}
+[languages."Python 2"]
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+python2 exe_dir/main.py2"""
+exe_code = "main.py2"
+
+[languages.Smalltalk]
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+gst exe_dir/main.st"""
+exe_code = "main.st"
+
+[languages.Objective-C]
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+exe_dir/main"""
+raw_code = "main.m"
+compile_command = """
+#!/bin/bash
+gcc -I $(gnustep-config --variable=GNUSTEP_SYSTEM_HEADERS) -L $(gnustep-config --variable=GNUSTEP_SYSTEM_LIBRARIES) -o compile_dir/main compile_dir/main.m -lgnustep-base -fconstant-string-class=NSConstantString -D_NATIVE_OBJC_EXCEPTIONS -Wl,--no-as-needed -lgnustep-base -lobjc"""
+exe_code = "main"
+
+[languages.Rust]
+exe_code = "main"
+raw_code = "main.rs"
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+exe_dir/main"""
+compile_command = """
+#!/bin/bash
+rustc compile_dir/main.rs -o compile_dir/main"""
+
+[languages.Scala]
+raw_code = "Main.scala"
+exe_code1 = "Main$.class"
+compile_command = """
+#!/bin/bash
+cd compile_dir
+scalac -d . Main.scala"""
+exe_code0 = "Main.class"
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+scala -classpath exe_dir -J-Xmx4g -J-Xss256m Main"""
+
+[languages.Perl]
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+exe_dir/main.pl"""
+exe_code = "main.pl"
+
+[languages.Swift]
+raw_code = "main.swift"
+compile_command = """
+#!/bin/bash
+swiftc compile_dir/main.swift -o compile_dir/main"""
+exe_code = "main"
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+exe_dir/main"""
+
+[languages.Java]
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+java -Xmx4g -Xss256m -cp exe_dir Main"""
+raw_code = "Main.java"
+exe_code = "Main.class"
+compile_command = """
+#!/bin/bash
+cd compile_dir
+javac Main.java"""
+
+[languages.Ada]
+raw_code = "main.adb"
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+exe_dir/main"""
+compile_command = """
+#!/bin/bash
+cd compile_dir
+gnatmake -o main main.adb"""
+exe_code = "main"
+
+[languages.Octave]
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+octave --no-gui --no-window-system exe_dir/main.m"""
+exe_code = "main.m"
+
+[languages."Pypy 3"]
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+pypy3 exe_dir/main.py3"""
+exe_code = "main.py3"
+
+[languages.Julia]
+exe_code = "main.jl"
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+julia --startup-file=no exe_dir/main.jl"""
+
+[languages.Lua]
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+lua exe_dir/main.lua"""
+exe_code = "main.lua"
+
+[languages.C]
+compile_command = """
+#!/bin/bash
+gcc compile_dir/main.c -o compile_dir/main -O2 -lm -w -Wno-unused-result"""
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+exe_dir/main"""
+raw_code = "main.c"
+exe_code = "main"
+
+[languages."C++"]
+raw_code = "main.cpp"
+exe_code = "main"
+compile_command = """
+#!/bin/bash
+g++ compile_dir/main.cpp -o compile_dir/main -static -O2 -lm -w -Wno-unused-result -std=c++2a"""
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+exe_dir/main"""
+
+[languages."Pypy 2"]
+exe_code = "main.py2"
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+pypy2 exe_dir/main.py2"""
+
+[languages.Kotlin]
+raw_code = "Main.kt"
+compile_command = """
+#!/bin/bash
+cd compile_dir
+kotlinc Main.kt -include-runtime -d Main.jar"""
+exe_code = "Main.jar"
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+kotlin exe_dir/Main.jar"""
+
+[languages.PHP]
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+php exe_dir/main.php"""
+exe_code = "main.php"
+
+[languages."Python 3"]
+exe_code = "main.py3"
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+python3 exe_dir/main.py3"""
+
+[languages.Javascript]
+exe_code = "main.js"
+exe_command = "node exe_dir/main.js"
+
+[languages."C#"]
+exe_code = "main"
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+exe_dir/main"""
+raw_code = "main.cs"
+compile_command = """
+#!/bin/bash
+mcs -out:compile_dir/main compile_dir/main.cs"""
+
+[languages.COBOL]
+exe_code = "main"
+compile_command = """
+#!/bin/bash
+cobc -free -x compile_dir/main.cob -o compile_dir/main"""
+raw_code = "main.cob"
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+exe_dir/main"""
+
+[languages."Common LISP"]
+exe_code = "main.lisp"
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+sbcl --script exe_dir/main.lisp"""
+
+[languages.Fortran]
+exe_code = "main"
+compile_command = """
+#!/bin/bash
+gfortran -o compile_dir/main compile_dir/main.f90 -ffree-form"""
+raw_code = "main.f90"
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+exe_dir/main"""
+
+[languages.Tcl]
+exe_code = "main.tcl"
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+exe_dir/main.tcl"""
+
+[languages.OCaml]
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+exe_dir/main"""
+exe_code = "main"
+compile_command = """
+#!/bin/bash
+ocamlc compile_dir/main.ml -o compile_dir/main"""
+raw_code = "main.ml"
+
+[languages.Go]
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+exe_dir/main"""
+compile_command = """
+#!/bin/bash
+go build -o compile_dir/main compile_dir/main.go"""
+raw_code = "main.go"
+exe_code = "main"
+
+[languages.Ruby]
+exe_code = "main.rb"
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+ruby exe_dir/main.rb"""

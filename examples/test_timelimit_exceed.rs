@@ -9,7 +9,7 @@ fn main() {
         .read_to_end(&mut script)
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script,String::from("C++")),
+        RawCode::new(script, String::from("C++")),
         Some(500),
         None,
         vec![],

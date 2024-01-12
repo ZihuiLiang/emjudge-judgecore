@@ -19,7 +19,7 @@ fn main() {
         .read_to_end(&mut std_ans)
         .unwrap();
     let result = AnsAndEval::single(
-        RawCode::new(eval_script,String::from("C++")),
+        RawCode::new(eval_script, String::from("C++")),
         None,
         None,
         tested_ans,

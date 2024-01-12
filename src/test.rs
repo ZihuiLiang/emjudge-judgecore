@@ -11,7 +11,10 @@ pub mod OnlyRun {
     ) -> Result<ProcessResource, (String, ProcessResource)> {
         match code.compile() {
             Ok(exe_code) => exe_code.run_to_end(input, cpu_limit_ms, memory_limit_KB),
-            Err(result) => Err((format!("Compile Error: {}", result), ProcessResource::default())),
+            Err(result) => Err((
+                format!("Compile Error: {}", result),
+                ProcessResource::default(),
+            )),
         }
     }
 }
@@ -28,23 +31,32 @@ pub mod RunAndEval {
         eval_code_memory_limit_KB: Option<u64>,
         input: Vec<u8>,
         output: Vec<u8>,
-    ) -> Result<(ProcessResource, ProcessResource), (String, ProcessResource, ProcessResource)> {
-        let exe_tested_code =  match tested_code.compile() {
-            Err(result) => return Err((format!("Compile Error: {}", result),
-            ProcessResource::default(),
-            ProcessResource::default())),
-            Ok(result) => result  
+    ) -> Result<(ProcessResource, ProcessResource), (String, ProcessResource, ProcessResource)>
+    {
+        let exe_tested_code = match tested_code.compile() {
+            Err(result) => {
+                return Err((
+                    format!("Compile Error: {}", result),
+                    ProcessResource::default(),
+                    ProcessResource::default(),
+                ))
+            }
+            Ok(result) => result,
         };
         let exe_eval_code = match eval_code.compile() {
-            Err(result) => return Err((format!("Eval Compile Error: {}", result),
-            ProcessResource::default(),
-            ProcessResource::default())),
-            Ok(result) => result  
+            Err(result) => {
+                return Err((
+                    format!("Eval Compile Error: {}", result),
+                    ProcessResource::default(),
+                    ProcessResource::default(),
+                ))
+            }
+            Ok(result) => result,
         };
         let tested_code_resource = match exe_tested_code.run_to_end(
             input.clone(),
             tested_code_cpu_limit_ms,
-            tested_code_memory_limit_KB
+            tested_code_memory_limit_KB,
         ) {
             Err(result) => return Err((result.0, result.1, ProcessResource::default())),
             Ok(result) => result,
@@ -63,8 +75,14 @@ pub mod RunAndEval {
             eval_code_cpu_limit_ms,
             eval_code_memory_limit_KB,
         ) {
-            Err(result) => return Err((String::from("Eval ") + result.0.as_str(), tested_code_resource, result.1)),
-            Ok(result) => result
+            Err(result) => {
+                return Err((
+                    String::from("Eval ") + result.0.as_str(),
+                    tested_code_resource,
+                    result.1,
+                ))
+            }
+            Ok(result) => result,
         };
         Ok((tested_code_resource, eval_code_resource))
     }
@@ -82,9 +100,13 @@ pub mod AnsAndEval {
         std_ans: Vec<u8>,
     ) -> Result<ProcessResource, (String, ProcessResource)> {
         let exe_eval_code = match eval_code.compile() {
-            Err(result) => return Err((format!("Eval Compile Error: {}", result),
-            ProcessResource::default())),
-            Ok(result) => result  
+            Err(result) => {
+                return Err((
+                    format!("Eval Compile Error: {}", result),
+                    ProcessResource::default(),
+                ))
+            }
+            Ok(result) => result,
         };
 
         let mut eval_input = vec![];
@@ -98,7 +120,7 @@ pub mod AnsAndEval {
             eval_code_memory_limit_KB,
         ) {
             Err(result) => return Err((String::from("Eval ") + result.0.as_str(), result.1)),
-            Ok(result) => result
+            Ok(result) => result,
         };
         Ok(eval_code_resource)
     }

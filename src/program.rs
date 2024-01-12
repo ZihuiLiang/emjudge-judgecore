@@ -1,12 +1,11 @@
 #![allow(non_snake_case)]
-use crate::settings::{self, RUN_SETTING, COMPILE_AND_EXE_SETTING};
+use crate::settings::{self, COMPILE_AND_EXE_SETTING, RUN_SETTING};
 use cgroups_rs::cgroup_builder::CgroupBuilder;
 use cgroups_rs::memory::MemController;
 use cgroups_rs::CgroupPid;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::{self, File};
-use std::hash::Hash;
 use std::io::{Read, Write};
 use std::os::unix::fs::PermissionsExt;
 use std::os::unix::process::CommandExt;
@@ -19,34 +18,43 @@ use tempfile::TempDir;
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct RawCode {
     script: Vec<u8>,
-    language: String, 
+    language: String,
 }
 
 impl RawCode {
     pub fn new(script: Vec<u8>, language: String) -> Self {
-        RawCode { script: script, language: language }
+        RawCode {
+            script: script,
+            language: language,
+        }
     }
 
     pub fn compile(&self) -> Result<ExeCode, String> {
-        let compile_and_exe_script = match settings::COMPILE_AND_EXE_SETTING.languages.get(&self.language) {
+        let compile_and_exe_script = match settings::COMPILE_AND_EXE_SETTING
+            .languages
+            .get(&self.language)
+        {
             None => return Err(String::from("No Such Language")),
-            Some(result) => result
+            Some(result) => result,
         };
         let compile_command = match compile_and_exe_script.get(&String::from("compile_command")) {
             None => {
                 let exe_code = match compile_and_exe_script.get(&String::from("exe_code")) {
                     None => return Err(String::from("Setting Error")),
-                    Some(result) => result
+                    Some(result) => result,
                 };
                 let mut exe_codes = HashMap::new();
                 exe_codes.insert(exe_code.clone(), self.script.clone());
-                return Ok(ExeCode{exe_codes: exe_codes, language: self.language.clone()})
+                return Ok(ExeCode {
+                    exe_codes: exe_codes,
+                    language: self.language.clone(),
+                });
             }
-            Some(result) => result
+            Some(result) => result,
         };
         let raw_code = match compile_and_exe_script.get(&String::from("raw_code")) {
             None => return Err(String::from("Setting Error")),
-            Some(result) => result
+            Some(result) => result,
         };
         let id = uuid::Uuid::new_v4().simple().to_string();
         let compile_dir = TempDir::with_prefix(id.as_str()).unwrap();
@@ -58,8 +66,14 @@ impl RawCode {
         let compile_command_path = compile_command_path.as_str();
         let raw_code_path = format!("{}/{}", compile_dir_path, raw_code);
         let raw_code_path = raw_code_path.as_str();
-        File::create(raw_code_path).unwrap().write_all(&self.script).unwrap();
-        File::create(compile_command_path).unwrap().write_all(compile_command.as_bytes()).unwrap();
+        File::create(raw_code_path)
+            .unwrap()
+            .write_all(&self.script)
+            .unwrap();
+        File::create(compile_command_path)
+            .unwrap()
+            .write_all(compile_command.as_bytes())
+            .unwrap();
         let mut permissions = fs::metadata(raw_code_path).unwrap().permissions();
         permissions.set_mode(0o700);
         fs::set_permissions(&raw_code_path, permissions.clone()).unwrap();
@@ -71,7 +85,9 @@ impl RawCode {
             .stderr(Stdio::piped())
             .spawn();
         if let Err(result) = p {
-            return Err(result.to_string().replace(&format!("{}/",compile_dir_path), ""));
+            return Err(result
+                .to_string()
+                .replace(&format!("{}/", compile_dir_path), ""));
         }
         let mut p = p.unwrap();
         let mut stderr_output = String::new();
@@ -89,21 +105,26 @@ impl RawCode {
                 let exe_code_path = exe_code_path.as_str();
                 let _ = match File::open(exe_code_path) {
                     Ok(mut result) => result.read_to_end(&mut exe_code_file),
-                    Err(_) => return Err(stderr_output.replace(&format!("{}/",compile_dir_path), ""))
+                    Err(_) => {
+                        return Err(stderr_output.replace(&format!("{}/", compile_dir_path), ""))
+                    }
                 };
                 exe_codes.insert(exe_code, exe_code_file);
             }
-        } 
+        }
         if exe_codes.is_empty() {
             return Err(String::from("Setting Error"));
         }
-        Ok(ExeCode {exe_codes: exe_codes, language: self.language.clone()})
+        Ok(ExeCode {
+            exe_codes: exe_codes,
+            language: self.language.clone(),
+        })
     }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct ExeCode {
-    exe_codes: HashMap<String, Vec<u8> >,
+    exe_codes: HashMap<String, Vec<u8>>,
     language: String,
 }
 
@@ -136,31 +157,31 @@ impl ExeCode {
         if fs::read_to_string("/etc/sudoers").is_err() {
             return Err((
                 String::from("Permission Denied"),
-                ProcessResource::default())
-            );
+                ProcessResource::default(),
+            ));
         }
         if cpu_limit_ms.is_some() && cpu_limit_ms.unwrap() > RUN_SETTING.cpu_limit_ms {
             return Err((
                 String::from("Exceed Maximum Time Limit"),
-                ProcessResource::default())
-            );
+                ProcessResource::default(),
+            ));
         }
         if memory_limit_KB.is_some() && memory_limit_KB.unwrap() > RUN_SETTING.memory_limit_KB {
             return Err((
                 String::from("Exceed Maximum Memory Limit"),
-                ProcessResource::default())
-            );
+                ProcessResource::default(),
+            ));
         }
         let cpu_limit_ms = cpu_limit_ms.unwrap_or(RUN_SETTING.cpu_limit_ms);
         let memory_limit_KB = memory_limit_KB.unwrap_or(RUN_SETTING.memory_limit_KB);
-        
+
         let compile_and_exe_script = match COMPILE_AND_EXE_SETTING.languages.get(&self.language) {
             None => return Err((String::from("Setting Error"), ProcessResource::default())),
-            Some(result) => result
+            Some(result) => result,
         };
         let exe_command = match compile_and_exe_script.get(&String::from("exe_command")) {
             None => return Err((String::from("Setting Error"), ProcessResource::default())),
-            Some(result) => result
+            Some(result) => result,
         };
         let id = uuid::Uuid::new_v4().simple().to_string();
         let username = id.clone();
@@ -170,7 +191,7 @@ impl ExeCode {
         let exe_command = exe_command.replace("exe_dir", exe_dir_path);
         let exe_command = exe_command.as_str();
         let exe_command_path = format!("{}/exe.sh", exe_dir_path);
-        let exe_command_path = exe_command_path.as_str(); 
+        let exe_command_path = exe_command_path.as_str();
         let stdin_path = format!("{}/stdin", exe_dir_path);
         let stdin_path = stdin_path.as_str();
         let stdout_path = format!("{}/stdout", exe_dir_path);
@@ -181,13 +202,19 @@ impl ExeCode {
         let mut all_file_path_vec = vec![exe_command_path.to_string()];
         for (exe_code, script) in &self.exe_codes {
             let exe_code_path = format!("{}/{}", exe_dir_path, exe_code);
-            File::create(exe_code_path.clone()).unwrap().write_all(&script).unwrap();
+            File::create(exe_code_path.clone())
+                .unwrap()
+                .write_all(&script)
+                .unwrap();
             let mut permissions = fs::metadata(exe_code_path.as_str()).unwrap().permissions();
             permissions.set_mode(0o700);
-            fs::set_permissions(&exe_code_path, permissions.clone()).unwrap();    
-            all_file_path_vec.push(exe_code_path.clone());  
+            fs::set_permissions(&exe_code_path, permissions.clone()).unwrap();
+            all_file_path_vec.push(exe_code_path.clone());
         }
-        File::create(exe_command_path).unwrap().write_all(exe_command.as_bytes()).unwrap();
+        File::create(exe_command_path)
+            .unwrap()
+            .write_all(exe_command.as_bytes())
+            .unwrap();
         let mut permissions = fs::metadata(exe_command_path).unwrap().permissions();
         permissions.set_mode(0o500);
         fs::set_permissions(&exe_command_path, permissions.clone()).unwrap();
@@ -226,7 +253,7 @@ impl ExeCode {
             .unwrap();
         let memory_controller: &MemController = cgroup.controller_of().unwrap();
         let oom_receiver = memory_controller.register_oom_event("oom").unwrap();
-        
+
         let p = Command::new(exe_command_path)
             .stdin(File::open(stdin_path).unwrap())
             .stdout(File::create(stdout_path).unwrap())
@@ -311,14 +338,12 @@ impl ExeCode {
                                     },
                                 ));
                             } else {
-                                return Ok(
-                                    ProcessResource {
-                                        memory_KB: memory_KB,
-                                        runtime_ms: runtime_ms,
-                                        stdout: output_buff,
-                                        stderr: err_buff,
-                                    }
-                                );
+                                return Ok(ProcessResource {
+                                    memory_KB: memory_KB,
+                                    runtime_ms: runtime_ms,
+                                    stdout: output_buff,
+                                    stderr: err_buff,
+                                });
                             }
                         }
                         Err(runtime_ms) => {

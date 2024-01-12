@@ -25,5 +25,5 @@ fn main() {
         .read_to_end(&mut script)
         .unwrap();
     println!("Compiling examples/programs/helloworld.cpp in language D++...");
-    println!("{:?}", RawCode::new(script,String::from("D++")).compile());
+    println!("{:?}", RawCode::new(script, String::from("D++")).compile());
 }

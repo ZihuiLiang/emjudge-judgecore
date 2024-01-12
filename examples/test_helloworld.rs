@@ -47,8 +47,14 @@ fn test_cpp() {
         vec![],
     );
     println!("{:?}", result);
-    println!("stdout:\n{:?}", String::from_utf8(result.clone().unwrap().stdout).unwrap());
-    println!("stderr:\n{:?}", String::from_utf8(result.clone().unwrap().stderr).unwrap());
+    println!(
+        "stdout:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stdout).unwrap()
+    );
+    println!(
+        "stderr:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stderr).unwrap()
+    );
 }
 
 fn test_c() {
@@ -58,15 +64,16 @@ fn test_c() {
         .unwrap()
         .read_to_end(&mut script)
         .unwrap();
-    let result = OnlyRun::single(
-        RawCode::new(script, String::from("C")),
-        None,
-        None,
-        vec![],
-    );
+    let result = OnlyRun::single(RawCode::new(script, String::from("C")), None, None, vec![]);
     println!("{:?}", result);
-    println!("stdout:\n{:?}", String::from_utf8(result.clone().unwrap().stdout).unwrap());
-    println!("stderr:\n{:?}", String::from_utf8(result.clone().unwrap().stderr).unwrap());
+    println!(
+        "stdout:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stdout).unwrap()
+    );
+    println!(
+        "stderr:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stderr).unwrap()
+    );
 }
 
 fn test_java() {
@@ -83,8 +90,14 @@ fn test_java() {
         vec![],
     );
     println!("{:?}", result);
-    println!("stdout:\n{:?}", String::from_utf8(result.clone().unwrap().stdout).unwrap());
-    println!("stderr:\n{:?}", String::from_utf8(result.clone().unwrap().stderr).unwrap());
+    println!(
+        "stdout:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stdout).unwrap()
+    );
+    println!(
+        "stderr:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stderr).unwrap()
+    );
 }
 
 fn test_python3() {
@@ -101,8 +114,14 @@ fn test_python3() {
         vec![],
     );
     println!("{:?}", result);
-    println!("stdout:\n{:?}", String::from_utf8(result.clone().unwrap().stdout).unwrap());
-    println!("stderr:\n{:?}", String::from_utf8(result.clone().unwrap().stderr).unwrap());
+    println!(
+        "stdout:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stdout).unwrap()
+    );
+    println!(
+        "stderr:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stderr).unwrap()
+    );
 }
 
 fn test_pypy3() {
@@ -119,8 +138,14 @@ fn test_pypy3() {
         vec![],
     );
     println!("{:?}", result);
-    println!("stdout:\n{:?}", String::from_utf8(result.clone().unwrap().stdout).unwrap());
-    println!("stderr:\n{:?}", String::from_utf8(result.clone().unwrap().stderr).unwrap());
+    println!(
+        "stdout:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stdout).unwrap()
+    );
+    println!(
+        "stderr:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stderr).unwrap()
+    );
 }
 
 fn test_python2() {
@@ -137,8 +162,14 @@ fn test_python2() {
         vec![],
     );
     println!("{:?}", result);
-    println!("stdout:\n{:?}", String::from_utf8(result.clone().unwrap().stdout).unwrap());
-    println!("stderr:\n{:?}", String::from_utf8(result.clone().unwrap().stderr).unwrap());
+    println!(
+        "stdout:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stdout).unwrap()
+    );
+    println!(
+        "stderr:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stderr).unwrap()
+    );
 }
 
 fn test_ruby() {
@@ -155,8 +186,14 @@ fn test_ruby() {
         vec![],
     );
     println!("{:?}", result);
-    println!("stdout:\n{:?}", String::from_utf8(result.clone().unwrap().stdout).unwrap());
-    println!("stderr:\n{:?}", String::from_utf8(result.clone().unwrap().stderr).unwrap());
+    println!(
+        "stdout:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stdout).unwrap()
+    );
+    println!(
+        "stderr:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stderr).unwrap()
+    );
 }
 
 fn test_perl() {
@@ -173,8 +210,14 @@ fn test_perl() {
         vec![],
     );
     println!("{:?}", result);
-    println!("stdout:\n{:?}", String::from_utf8(result.clone().unwrap().stdout).unwrap());
-    println!("stderr:\n{:?}", String::from_utf8(result.clone().unwrap().stderr).unwrap());
+    println!(
+        "stdout:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stdout).unwrap()
+    );
+    println!(
+        "stderr:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stderr).unwrap()
+    );
 }
 
 fn test_cs() {
@@ -184,15 +227,16 @@ fn test_cs() {
         .unwrap()
         .read_to_end(&mut script)
         .unwrap();
-    let result = OnlyRun::single(
-        RawCode::new(script, String::from("C#")),
-        None,
-        None,
-        vec![],
-    );
+    let result = OnlyRun::single(RawCode::new(script, String::from("C#")), None, None, vec![]);
     println!("{:?}", result);
-    println!("stdout:\n{:?}", String::from_utf8(result.clone().unwrap().stdout).unwrap());
-    println!("stderr:\n{:?}", String::from_utf8(result.clone().unwrap().stderr).unwrap());
+    println!(
+        "stdout:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stdout).unwrap()
+    );
+    println!(
+        "stderr:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stderr).unwrap()
+    );
 }
 
 fn test_objective_c() {
@@ -209,8 +253,14 @@ fn test_objective_c() {
         vec![],
     );
     println!("{:?}", result);
-    println!("stdout:\n{:?}", String::from_utf8(result.clone().unwrap().stdout).unwrap());
-    println!("stderr:\n{:?}", String::from_utf8(result.clone().unwrap().stderr).unwrap());
+    println!(
+        "stdout:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stdout).unwrap()
+    );
+    println!(
+        "stderr:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stderr).unwrap()
+    );
 }
 
 fn test_swift() {
@@ -227,8 +277,14 @@ fn test_swift() {
         vec![],
     );
     println!("{:?}", result);
-    println!("stdout:\n{:?}", String::from_utf8(result.clone().unwrap().stdout).unwrap());
-    println!("stderr:\n{:?}", String::from_utf8(result.clone().unwrap().stderr).unwrap());
+    println!(
+        "stdout:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stdout).unwrap()
+    );
+    println!(
+        "stderr:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stderr).unwrap()
+    );
 }
 
 fn test_go() {
@@ -238,15 +294,16 @@ fn test_go() {
         .unwrap()
         .read_to_end(&mut script)
         .unwrap();
-    let result = OnlyRun::single(
-        RawCode::new(script, String::from("Go")),
-        None,
-        None,
-        vec![],
-    );
+    let result = OnlyRun::single(RawCode::new(script, String::from("Go")), None, None, vec![]);
     println!("{:?}", result);
-    println!("stdout:\n{:?}", String::from_utf8(result.clone().unwrap().stdout).unwrap());
-    println!("stderr:\n{:?}", String::from_utf8(result.clone().unwrap().stderr).unwrap());
+    println!(
+        "stdout:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stdout).unwrap()
+    );
+    println!(
+        "stderr:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stderr).unwrap()
+    );
 }
 
 fn test_javascript() {
@@ -263,8 +320,14 @@ fn test_javascript() {
         vec![],
     );
     println!("{:?}", result);
-    println!("stdout:\n{:?}", String::from_utf8(result.clone().unwrap().stdout).unwrap());
-    println!("stderr:\n{:?}", String::from_utf8(result.clone().unwrap().stderr).unwrap());
+    println!(
+        "stdout:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stdout).unwrap()
+    );
+    println!(
+        "stderr:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stderr).unwrap()
+    );
 }
 
 fn test_rust() {
@@ -281,8 +344,14 @@ fn test_rust() {
         vec![],
     );
     println!("{:?}", result);
-    println!("stdout:\n{:?}", String::from_utf8(result.clone().unwrap().stdout).unwrap());
-    println!("stderr:\n{:?}", String::from_utf8(result.clone().unwrap().stderr).unwrap());
+    println!(
+        "stdout:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stdout).unwrap()
+    );
+    println!(
+        "stderr:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stderr).unwrap()
+    );
 }
 
 fn test_kotlin() {
@@ -299,8 +368,14 @@ fn test_kotlin() {
         vec![],
     );
     println!("{:?}", result);
-    println!("stdout:\n{:?}", String::from_utf8(result.clone().unwrap().stdout).unwrap());
-    println!("stderr:\n{:?}", String::from_utf8(result.clone().unwrap().stderr).unwrap());
+    println!(
+        "stdout:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stdout).unwrap()
+    );
+    println!(
+        "stderr:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stderr).unwrap()
+    );
 }
 
 fn test_julia() {
@@ -317,8 +392,14 @@ fn test_julia() {
         vec![],
     );
     println!("{:?}", result);
-    println!("stdout:\n{:?}", String::from_utf8(result.clone().unwrap().stdout).unwrap());
-    println!("stderr:\n{:?}", String::from_utf8(result.clone().unwrap().stderr).unwrap());
+    println!(
+        "stdout:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stdout).unwrap()
+    );
+    println!(
+        "stderr:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stderr).unwrap()
+    );
 }
 
 fn test_fortran() {
@@ -335,8 +416,14 @@ fn test_fortran() {
         vec![],
     );
     println!("{:?}", result);
-    println!("stdout:\n{:?}", String::from_utf8(result.clone().unwrap().stdout).unwrap());
-    println!("stderr:\n{:?}", String::from_utf8(result.clone().unwrap().stderr).unwrap());
+    println!(
+        "stdout:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stdout).unwrap()
+    );
+    println!(
+        "stderr:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stderr).unwrap()
+    );
 }
 
 fn test_lua() {
@@ -353,8 +440,14 @@ fn test_lua() {
         vec![],
     );
     println!("{:?}", result);
-    println!("stdout:\n{:?}", String::from_utf8(result.clone().unwrap().stdout).unwrap());
-    println!("stderr:\n{:?}", String::from_utf8(result.clone().unwrap().stderr).unwrap());
+    println!(
+        "stdout:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stdout).unwrap()
+    );
+    println!(
+        "stderr:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stderr).unwrap()
+    );
 }
 
 fn test_php() {
@@ -371,8 +464,14 @@ fn test_php() {
         vec![],
     );
     println!("{:?}", result);
-    println!("stdout:\n{:?}", String::from_utf8(result.clone().unwrap().stdout).unwrap());
-    println!("stderr:\n{:?}", String::from_utf8(result.clone().unwrap().stderr).unwrap());
+    println!(
+        "stdout:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stdout).unwrap()
+    );
+    println!(
+        "stderr:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stderr).unwrap()
+    );
 }
 
 fn test_smalltalk() {
@@ -389,8 +488,14 @@ fn test_smalltalk() {
         vec![],
     );
     println!("{:?}", result);
-    println!("stdout:\n{:?}", String::from_utf8(result.clone().unwrap().stdout).unwrap());
-    println!("stderr:\n{:?}", String::from_utf8(result.clone().unwrap().stderr).unwrap());
+    println!(
+        "stdout:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stdout).unwrap()
+    );
+    println!(
+        "stderr:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stderr).unwrap()
+    );
 }
 
 fn test_ocaml() {
@@ -407,8 +512,14 @@ fn test_ocaml() {
         vec![],
     );
     println!("{:?}", result);
-    println!("stdout:\n{:?}", String::from_utf8(result.clone().unwrap().stdout).unwrap());
-    println!("stderr:\n{:?}", String::from_utf8(result.clone().unwrap().stderr).unwrap());
+    println!(
+        "stdout:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stdout).unwrap()
+    );
+    println!(
+        "stderr:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stderr).unwrap()
+    );
 }
 
 fn test_cobol() {
@@ -425,8 +536,14 @@ fn test_cobol() {
         vec![],
     );
     println!("{:?}", result);
-    println!("stdout:\n{:?}", String::from_utf8(result.clone().unwrap().stdout).unwrap());
-    println!("stderr:\n{:?}", String::from_utf8(result.clone().unwrap().stderr).unwrap());
+    println!(
+        "stdout:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stdout).unwrap()
+    );
+    println!(
+        "stderr:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stderr).unwrap()
+    );
 }
 
 fn test_ada() {
@@ -443,8 +560,14 @@ fn test_ada() {
         vec![],
     );
     println!("{:?}", result);
-    println!("stdout:\n{:?}", String::from_utf8(result.clone().unwrap().stdout).unwrap());
-    println!("stderr:\n{:?}", String::from_utf8(result.clone().unwrap().stderr).unwrap());
+    println!(
+        "stdout:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stdout).unwrap()
+    );
+    println!(
+        "stderr:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stderr).unwrap()
+    );
 }
 
 fn test_common_lisp() {
@@ -461,8 +584,14 @@ fn test_common_lisp() {
         vec![],
     );
     println!("{:?}", result);
-    println!("stdout:\n{:?}", String::from_utf8(result.clone().unwrap().stdout).unwrap());
-    println!("stderr:\n{:?}", String::from_utf8(result.clone().unwrap().stderr).unwrap());
+    println!(
+        "stdout:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stdout).unwrap()
+    );
+    println!(
+        "stderr:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stderr).unwrap()
+    );
 }
 
 fn test_scala() {
@@ -479,8 +608,14 @@ fn test_scala() {
         vec![],
     );
     println!("{:?}", result);
-    println!("stdout:\n{:?}", String::from_utf8(result.clone().unwrap().stdout).unwrap());
-    println!("stderr:\n{:?}", String::from_utf8(result.clone().unwrap().stderr).unwrap());
+    println!(
+        "stdout:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stdout).unwrap()
+    );
+    println!(
+        "stderr:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stderr).unwrap()
+    );
 }
 
 fn test_tcl() {
@@ -497,8 +632,14 @@ fn test_tcl() {
         vec![],
     );
     println!("{:?}", result);
-    println!("stdout:\n{:?}", String::from_utf8(result.clone().unwrap().stdout).unwrap());
-    println!("stderr:\n{:?}", String::from_utf8(result.clone().unwrap().stderr).unwrap());
+    println!(
+        "stdout:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stdout).unwrap()
+    );
+    println!(
+        "stderr:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stderr).unwrap()
+    );
 }
 
 fn test_octave() {
@@ -515,8 +656,14 @@ fn test_octave() {
         vec![],
     );
     println!("{:?}", result);
-    println!("stdout:\n{:?}", String::from_utf8(result.clone().unwrap().stdout).unwrap());
-    println!("stderr:\n{:?}", String::from_utf8(result.clone().unwrap().stderr).unwrap());
+    println!(
+        "stdout:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stdout).unwrap()
+    );
+    println!(
+        "stderr:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stderr).unwrap()
+    );
 }
 
 fn test_pypy2() {
@@ -533,6 +680,12 @@ fn test_pypy2() {
         vec![],
     );
     println!("{:?}", result);
-    println!("stdout:\n{:?}", String::from_utf8(result.clone().unwrap().stdout).unwrap());
-    println!("stderr:\n{:?}", String::from_utf8(result.clone().unwrap().stderr).unwrap());
+    println!(
+        "stdout:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stdout).unwrap()
+    );
+    println!(
+        "stderr:\n{:?}",
+        String::from_utf8(result.clone().unwrap().stderr).unwrap()
+    );
 }
