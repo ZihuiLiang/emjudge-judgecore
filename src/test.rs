@@ -125,3 +125,38 @@ pub mod AnsAndEval {
         Ok(eval_code_resource)
     }
 }
+
+pub mod RunAndInteract {
+    use crate::program::{RawCode, ProcessResource};
+
+    pub fn single(
+        tested_code: RawCode,
+        tested_code_cpu_limit_ms: Option<u64>,
+        tested_code_memory_limit_KB: Option<u64>,
+        interactor_code: RawCode,
+        interactor_code_cpu_limit_ms: Option<u64>,
+        interactor_code_memory_limit_KB: Option<u64>,
+        interactor_code_input: Vec<u8>) -> Result<(ProcessResource, ProcessResource), (String, ProcessResource, ProcessResource)> {
+            let exe_tested_code = match tested_code.compile() {
+                Err(result) => {
+                    return Err((
+                        format!("Compile Error: {}", result),
+                        ProcessResource::default(),
+                        ProcessResource::default(),
+                    ))
+                }
+                Ok(result) => result,
+            };
+            let exe_interactor_code = match interactor_code.compile() {
+                Err(result) => {
+                    return Err((
+                        format!("Interactor Compile Error: {}", result),
+                        ProcessResource::default(),
+                        ProcessResource::default(),
+                    ))
+                }
+                Ok(result) => result,
+            };
+            exe_tested_code.run_with_interactor(tested_code_cpu_limit_ms, tested_code_memory_limit_KB, exe_interactor_code, interactor_code_cpu_limit_ms, interactor_code_memory_limit_KB, interactor_code_input)
+        }
+}

@@ -1,100 +1,24 @@
-[languages."Python 2"]
-exe_command = """
+[languages.OCaml]
+exe_code = "main"
+compile_command = """
 #!/bin/bash
-ulimit -s unlimited
-python2 exe_dir/main.py2"""
-exe_code = "main.py2"
-
-[languages.Smalltalk]
-exe_command = """
-#!/bin/bash
-ulimit -s unlimited
-gst exe_dir/main.st"""
-exe_code = "main.st"
-
-[languages.Objective-C]
+ocamlc compile_dir/main.ml -o compile_dir/main"""
 exe_command = """
 #!/bin/bash
 ulimit -s unlimited
 exe_dir/main"""
-raw_code = "main.m"
-compile_command = """
-#!/bin/bash
-gcc -I $(gnustep-config --variable=GNUSTEP_SYSTEM_HEADERS) -L $(gnustep-config --variable=GNUSTEP_SYSTEM_LIBRARIES) -o compile_dir/main compile_dir/main.m -lgnustep-base -fconstant-string-class=NSConstantString -D_NATIVE_OBJC_EXCEPTIONS -Wl,--no-as-needed -lgnustep-base -lobjc"""
-exe_code = "main"
-
-[languages.Rust]
-exe_code = "main"
-raw_code = "main.rs"
-exe_command = """
-#!/bin/bash
-ulimit -s unlimited
-exe_dir/main"""
-compile_command = """
-#!/bin/bash
-rustc compile_dir/main.rs -o compile_dir/main"""
-
-[languages.Scala]
-raw_code = "Main.scala"
-exe_code1 = "Main$.class"
-compile_command = """
-#!/bin/bash
-cd compile_dir
-scalac -d . Main.scala"""
-exe_code0 = "Main.class"
-exe_command = """
-#!/bin/bash
-ulimit -s unlimited
-scala -classpath exe_dir -J-Xmx4g -J-Xss256m Main"""
-
-[languages.Perl]
-exe_command = """
-#!/bin/bash
-ulimit -s unlimited
-exe_dir/main.pl"""
-exe_code = "main.pl"
+raw_code = "main.ml"
 
 [languages.Swift]
+exe_code = "main"
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+exe_dir/main"""
 raw_code = "main.swift"
 compile_command = """
 #!/bin/bash
 swiftc compile_dir/main.swift -o compile_dir/main"""
-exe_code = "main"
-exe_command = """
-#!/bin/bash
-ulimit -s unlimited
-exe_dir/main"""
-
-[languages.Java]
-exe_command = """
-#!/bin/bash
-ulimit -s unlimited
-java -Xmx4g -Xss256m -cp exe_dir Main"""
-raw_code = "Main.java"
-exe_code = "Main.class"
-compile_command = """
-#!/bin/bash
-cd compile_dir
-javac Main.java"""
-
-[languages.Ada]
-raw_code = "main.adb"
-exe_command = """
-#!/bin/bash
-ulimit -s unlimited
-exe_dir/main"""
-compile_command = """
-#!/bin/bash
-cd compile_dir
-gnatmake -o main main.adb"""
-exe_code = "main"
-
-[languages.Octave]
-exe_command = """
-#!/bin/bash
-ulimit -s unlimited
-octave --no-gui --no-window-system exe_dir/main.m"""
-exe_code = "main.m"
 
 [languages."Pypy 3"]
 exe_command = """
@@ -103,30 +27,42 @@ ulimit -s unlimited
 pypy3 exe_dir/main.py3"""
 exe_code = "main.py3"
 
-[languages.Julia]
-exe_code = "main.jl"
+[languages."Pypy 2"]
 exe_command = """
 #!/bin/bash
 ulimit -s unlimited
-julia --startup-file=no exe_dir/main.jl"""
+pypy2 exe_dir/main.py2"""
+exe_code = "main.py2"
 
-[languages.Lua]
+[languages.Javascript]
+exe_code = "main.js"
+exe_command = "node exe_dir/main.js"
+
+[languages."Python 3"]
+exe_code = "main.py3"
 exe_command = """
 #!/bin/bash
 ulimit -s unlimited
-lua exe_dir/main.lua"""
-exe_code = "main.lua"
+python3 exe_dir/main.py3"""
 
-[languages.C]
+[languages.Tcl]
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+exe_dir/main.tcl"""
+exe_code = "main.tcl"
+
+[languages.Kotlin]
+exe_code = "Main.jar"
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+kotlin exe_dir/Main.jar"""
 compile_command = """
 #!/bin/bash
-gcc compile_dir/main.c -o compile_dir/main -O2 -lm -w -Wno-unused-result"""
-exe_command = """
-#!/bin/bash
-ulimit -s unlimited
-exe_dir/main"""
-raw_code = "main.c"
-exe_code = "main"
+cd compile_dir
+kotlinc Main.kt -include-runtime -d Main.jar"""
+raw_code = "Main.kt"
 
 [languages."C++"]
 raw_code = "main.cpp"
@@ -139,111 +75,86 @@ exe_command = """
 ulimit -s unlimited
 exe_dir/main"""
 
-[languages."Pypy 2"]
-exe_code = "main.py2"
+[languages.Scala]
+exe_code0 = "Main.class"
 exe_command = """
 #!/bin/bash
 ulimit -s unlimited
-pypy2 exe_dir/main.py2"""
-
-[languages.Kotlin]
-raw_code = "Main.kt"
+scala -classpath exe_dir -J-Xmx4g -J-Xss256m Main"""
+exe_code1 = "Main$.class"
 compile_command = """
 #!/bin/bash
 cd compile_dir
-kotlinc Main.kt -include-runtime -d Main.jar"""
-exe_code = "Main.jar"
-exe_command = """
-#!/bin/bash
-ulimit -s unlimited
-kotlin exe_dir/Main.jar"""
+scalac -d . Main.scala"""
+raw_code = "Main.scala"
 
-[languages.PHP]
-exe_command = """
-#!/bin/bash
-ulimit -s unlimited
-php exe_dir/main.php"""
-exe_code = "main.php"
-
-[languages."Python 3"]
-exe_code = "main.py3"
-exe_command = """
-#!/bin/bash
-ulimit -s unlimited
-python3 exe_dir/main.py3"""
-
-[languages.Javascript]
-exe_code = "main.js"
-exe_command = "node exe_dir/main.js"
-
-[languages."C#"]
-exe_code = "main"
+[languages.C]
 exe_command = """
 #!/bin/bash
 ulimit -s unlimited
 exe_dir/main"""
-raw_code = "main.cs"
 compile_command = """
 #!/bin/bash
-mcs -out:compile_dir/main compile_dir/main.cs"""
-
-[languages.COBOL]
+gcc compile_dir/main.c -o compile_dir/main -O2 -lm -w -Wno-unused-result"""
 exe_code = "main"
-compile_command = """
-#!/bin/bash
-cobc -free -x compile_dir/main.cob -o compile_dir/main"""
-raw_code = "main.cob"
-exe_command = """
-#!/bin/bash
-ulimit -s unlimited
-exe_dir/main"""
+raw_code = "main.c"
 
 [languages."Common LISP"]
-exe_code = "main.lisp"
 exe_command = """
 #!/bin/bash
 ulimit -s unlimited
 sbcl --script exe_dir/main.lisp"""
+exe_code = "main.lisp"
 
-[languages.Fortran]
-exe_code = "main"
-compile_command = """
-#!/bin/bash
-gfortran -o compile_dir/main compile_dir/main.f90 -ffree-form"""
-raw_code = "main.f90"
+[languages.COBOL]
 exe_command = """
 #!/bin/bash
 ulimit -s unlimited
 exe_dir/main"""
-
-[languages.Tcl]
-exe_code = "main.tcl"
-exe_command = """
-#!/bin/bash
-ulimit -s unlimited
-exe_dir/main.tcl"""
-
-[languages.OCaml]
-exe_command = """
-#!/bin/bash
-ulimit -s unlimited
-exe_dir/main"""
+raw_code = "main.cob"
 exe_code = "main"
 compile_command = """
 #!/bin/bash
-ocamlc compile_dir/main.ml -o compile_dir/main"""
-raw_code = "main.ml"
+cobc -free -x compile_dir/main.cob -o compile_dir/main"""
+
+[languages.Lua]
+exe_code = "main.lua"
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+lua exe_dir/main.lua"""
+
+[languages.Perl]
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+exe_dir/main.pl"""
+exe_code = "main.pl"
+
+[languages.Julia]
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+julia --startup-file=no exe_dir/main.jl"""
+exe_code = "main.jl"
+
+[languages."Python 2"]
+exe_code = "main.py2"
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+python2 exe_dir/main.py2"""
 
 [languages.Go]
+exe_code = "main"
 exe_command = """
 #!/bin/bash
 ulimit -s unlimited
 exe_dir/main"""
+raw_code = "main.go"
 compile_command = """
 #!/bin/bash
 go build -o compile_dir/main compile_dir/main.go"""
-raw_code = "main.go"
-exe_code = "main"
 
 [languages.Ruby]
 exe_code = "main.rb"
@@ -251,3 +162,92 @@ exe_command = """
 #!/bin/bash
 ulimit -s unlimited
 ruby exe_dir/main.rb"""
+
+[languages.Octave]
+exe_code = "main.m"
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+octave --no-gui --no-window-system exe_dir/main.m"""
+
+[languages.Objective-C]
+exe_code = "main"
+raw_code = "main.m"
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+exe_dir/main"""
+compile_command = """
+#!/bin/bash
+gcc -I $(gnustep-config --variable=GNUSTEP_SYSTEM_HEADERS) -L $(gnustep-config --variable=GNUSTEP_SYSTEM_LIBRARIES) -o compile_dir/main compile_dir/main.m -lgnustep-base -fconstant-string-class=NSConstantString -D_NATIVE_OBJC_EXCEPTIONS -Wl,--no-as-needed -lgnustep-base -lobjc"""
+
+[languages.Smalltalk]
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+gst exe_dir/main.st"""
+exe_code = "main.st"
+
+[languages.Fortran]
+exe_code = "main"
+raw_code = "main.f90"
+compile_command = """
+#!/bin/bash
+gfortran -o compile_dir/main compile_dir/main.f90 -ffree-form"""
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+exe_dir/main"""
+
+[languages."C#"]
+exe_code = "main"
+compile_command = """
+#!/bin/bash
+mcs -out:compile_dir/main compile_dir/main.cs"""
+raw_code = "main.cs"
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+exe_dir/main"""
+
+[languages.Java]
+exe_code = "Main.class"
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+java -Xmx4g -Xss256m -cp exe_dir Main"""
+compile_command = """
+#!/bin/bash
+cd compile_dir
+javac Main.java"""
+raw_code = "Main.java"
+
+[languages.Ada]
+exe_code = "main"
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+exe_dir/main"""
+compile_command = """
+#!/bin/bash
+cd compile_dir
+gnatmake -o main main.adb"""
+raw_code = "main.adb"
+
+[languages.Rust]
+exe_code = "main"
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+exe_dir/main"""
+compile_command = """
+#!/bin/bash
+rustc compile_dir/main.rs -o compile_dir/main"""
+raw_code = "main.rs"
+
+[languages.PHP]
+exe_code = "main.php"
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+php exe_dir/main.php"""
