@@ -1,10 +1,13 @@
 #include <algorithm>
 #include <cstdio>
 #include <iostream>
+#include <fstream>
 using namespace std;
 int main() {
     int l, r, x;
-    scanf("%d %d %d", &l, &r, &x);
+    ifstream interactor_in("interactorin");
+    ofstream interactor_out("interactorout");
+    interactor_in >> l >> r >> x;
     printf("%d %d\n", l, r);
     fflush(stdout);
     int steps = 0;
@@ -32,18 +35,17 @@ int main() {
             continue;
         }
         if (c == '!') {
-            printf("END\n");
-            fflush(stdout);
             if (y == x) {
-                printf("AC with %d steps\n", steps);
+                interactor_out << "AC with "<<  steps << " steps\n";
             } else {
-                printf("WA with %d steps\n", steps);
+                interactor_out << "WA with "<<  steps << " steps\n";
             }
-            fflush(stdout);
             break;
         }
         printf("Error\n");
         fflush(stdout);
     }
+    interactor_in.close();
+    interactor_out.close();
     return 0;
 }

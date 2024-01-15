@@ -36,12 +36,12 @@ impl CompileAndExeSetting {
             map.insert(String::from("raw_code"), String::from("main.cpp"));
             map.insert(
                 String::from("compile_command"),
-                String::from("#!/bin/bash\ng++ compile_dir/main.cpp -o compile_dir/main"),
+                String::from("#!/bin/bash\ng++ main.cpp -o main"),
             );
             map.insert(String::from("exe_file"), String::from("main"));
             map.insert(
                 String::from("exe_command"),
-                String::from("#!/bin/bash\nulimit -s unlimited\nexe_dir/main"),
+                String::from("#!/bin/bash\nulimit -s unlimited\nmain"),
             );
             map
         });
@@ -50,7 +50,7 @@ impl CompileAndExeSetting {
             map.insert(String::from("exe_file"), String::from("main.py3"));
             map.insert(
                 String::from("exe_command"),
-                String::from("#!/bin/bash\nulimit -s unlimited\npython3 exe_dir/main.py3"),
+                String::from("#!/bin/bash\nulimit -s unlimited\npython3 main.py3"),
             );
             map
         });

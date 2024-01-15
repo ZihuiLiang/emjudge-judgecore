@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::{Read, Write, BufReader, BufRead};
+use std::os::fd::FromRawFd;
 use std::os::unix::fs::PermissionsExt;
 use std::os::unix::process::CommandExt;
 use std::process::{Command, Stdio};
@@ -59,14 +60,11 @@ impl RawCode {
         };
         let id = uuid::Uuid::new_v4().simple().to_string();
         let compile_dir = TempDir::with_prefix(id.as_str()).unwrap();
-        let compile_dir_path = compile_dir.path().to_owned().clone();
-        let compile_dir_path = compile_dir_path.to_str().unwrap();
-        let compile_command = compile_command.replace("compile_dir", compile_dir_path);
         let compile_command = compile_command.as_str();
-        let compile_command_path = format!("{}/compile.sh", compile_dir_path);
-        let compile_command_path = compile_command_path.as_str();
-        let raw_code_path = format!("{}/{}", compile_dir_path, raw_code);
+        let raw_code_path = format!("{}/{}", compile_dir.path().to_str().unwrap(), raw_code);
         let raw_code_path = raw_code_path.as_str();
+        let compile_command_path = format!("{}/compile.sh", compile_dir.path().to_str().unwrap());
+        let compile_command_path = compile_command_path.as_str();
         File::create(raw_code_path)
             .unwrap()
             .write_all(&self.script)
@@ -81,14 +79,14 @@ impl RawCode {
         let mut permissions = fs::metadata(compile_command_path).unwrap().permissions();
         permissions.set_mode(0o700);
         fs::set_permissions(&compile_command_path, permissions.clone()).unwrap();
-        let p = Command::new(compile_command_path)
+        let p = Command::new("./compile.sh")
             .stdout(Stdio::null())
             .stderr(Stdio::piped())
+            .current_dir(compile_dir.path().to_str().unwrap())
             .spawn();
         if let Err(result) = p {
             return Err(result
-                .to_string()
-                .replace(&format!("{}/", compile_dir_path), ""));
+                .to_string());
         }
         let mut p = p.unwrap();
         let mut stderr_output = String::new();
@@ -102,12 +100,12 @@ impl RawCode {
             if key.starts_with("exe_code") {
                 let mut exe_code_file = Vec::new();
                 let exe_code = value.clone();
-                let exe_code_path = format!("{}/{}", compile_dir_path, exe_code);
+                let exe_code_path = format!("{}/{}", compile_dir.path().to_str().unwrap(), exe_code);
                 let exe_code_path = exe_code_path.as_str();
                 let _ = match File::open(exe_code_path) {
                     Ok(mut result) => result.read_to_end(&mut exe_code_file),
                     Err(_) => {
-                        return Err(stderr_output.replace(&format!("{}/", compile_dir_path), ""))
+                        return Err(stderr_output.replace(&format!("{}/", compile_dir.path().to_str().unwrap()), ""))
                     }
                 };
                 exe_codes.insert(exe_code, exe_code_file);
@@ -131,7 +129,8 @@ struct ExeResources {
     stdin_path: String,
     stdout_path: String,
     stderr_path: String,
-    exe_command_path: String,
+    interactorin_path: String,
+    interactorout_path: String,
     cgroup: Cgroup,
     oom_receiver: Receiver<String>
 }
@@ -171,7 +170,9 @@ impl ExeResources {
         let stdin_path = format!("{}/stdin", exe_dir_path);
         let stdout_path = format!("{}/stdout", exe_dir_path);
         let stderr_path = format!("{}/stderr", exe_dir_path);
-        let mut all_file_path_vec = vec![exe_command_path.clone()];
+        let interactorin_path = format!("{}/interactorin", exe_dir_path);
+        let interactorout_path = format!("{}/interactorout", exe_dir_path);
+        let mut all_file_path_vec = vec![exe_command_path.clone(), interactorin_path.clone(), interactorout_path.clone()];
         File::create(exe_command_path.as_str())
             .unwrap()
             .write_all(exe_command.as_bytes())
@@ -179,6 +180,16 @@ impl ExeResources {
         let mut permissions = fs::metadata(exe_command_path.as_str()).unwrap().permissions();
         permissions.set_mode(0o500);
         fs::set_permissions(&exe_command_path, permissions.clone()).unwrap();
+        File::create(interactorin_path.as_str())
+            .unwrap();
+        let mut permissions = fs::metadata(interactorin_path.as_str()).unwrap().permissions();
+        permissions.set_mode(0o700);
+        fs::set_permissions(&interactorin_path, permissions.clone()).unwrap();
+        File::create(interactorout_path.as_str())
+            .unwrap();
+        let mut permissions = fs::metadata(interactorout_path.as_str()).unwrap().permissions();
+        permissions.set_mode(0o700);
+        fs::set_permissions(&interactorout_path, permissions.clone()).unwrap();
         for (exe_code, script) in &exe_codes {
             let exe_code_path = format!("{}/{}", exe_dir_path, exe_code);
             File::create(exe_code_path.clone())
@@ -225,7 +236,7 @@ impl ExeResources {
             .unwrap();
         let memory_controller: &MemController = cgroup.controller_of().unwrap();
         let oom_receiver = memory_controller.register_oom_event("oom").unwrap();
-        Ok(Self { id: id, uid: uid, exe_dir: exe_dir, cpu_limit_ms: cpu_limit_ms, stdin_path: stdin_path, stdout_path: stdout_path, stderr_path: stderr_path, cgroup: cgroup, oom_receiver: oom_receiver, exe_command_path: exe_command_path})
+        Ok(Self { id: id, uid: uid, exe_dir: exe_dir, cpu_limit_ms: cpu_limit_ms, stdin_path: stdin_path, stdout_path: stdout_path, stderr_path: stderr_path, cgroup: cgroup, oom_receiver: oom_receiver, interactorin_path: interactorin_path, interactorout_path: interactorout_path })
     }
 
     fn max_usage_in_bytes(&self) -> u64 {
@@ -245,6 +256,15 @@ impl ExeResources {
     fn read_stderr(&self) -> Vec<u8> {
         let mut buf = vec![];
         File::open(self.stderr_path.as_str())
+            .unwrap()
+            .read_to_end(&mut buf)
+            .unwrap();
+        buf
+    }
+    
+    fn read_interactorout(&self) -> Vec<u8> {
+        let mut buf = vec![];
+        File::open(self.interactorout_path.as_str())
             .unwrap()
             .read_to_end(&mut buf)
             .unwrap();
@@ -316,10 +336,11 @@ impl ExeCode {
             }
         };
         File::create(exe_resources.stdin_path.as_str()).unwrap().write_all(&input).unwrap();
-        let p = Command::new(exe_resources.exe_command_path.as_str())
+        let p = Command::new("./exe.sh")
             .stdin(File::open(exe_resources.stdin_path.as_str()).unwrap())
             .stdout(File::create(exe_resources.stdout_path.as_str()).unwrap())
             .stderr(File::create(exe_resources.stderr_path.as_str()).unwrap())
+            .current_dir(exe_resources.exe_dir.path())
             .uid(exe_resources.uid)
             .spawn();
         match p {
@@ -438,12 +459,19 @@ impl ExeCode {
                     return Err((result, ProcessResource::default(), ProcessResource::default()));
                 }
             };
+
+            let (pipe_to_interactor_read, pipe_to_interactor_write) = nix::unistd::pipe().unwrap();
+
+            let (pipe_from_interactor_read, pipe_from_interactor_write) = nix::unistd::pipe().unwrap();
             
-            let mut interactor_p = match Command::new(interactor_exe_resources.exe_command_path.as_str())
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
+            let _ = File::create(interactor_exe_resources.interactorin_path.as_str()).unwrap().write_all(&interactor_input).unwrap();
+
+            let mut interactor_p = match Command::new("./exe.sh")
+            .stdin(unsafe { std::fs::File::from_raw_fd(pipe_to_interactor_read) })
+            .stdout(unsafe { std::fs::File::from_raw_fd(pipe_from_interactor_write) })
             .stderr(File::create(interactor_exe_resources.stderr_path.as_str()).unwrap())
             .uid(interactor_exe_resources.uid)
+            .current_dir(interactor_exe_resources.exe_dir.path())
             .spawn() {
                 Err(_) => {
                     return Err((String::from("Runtime Error"), ProcessResource::default(), ProcessResource::default()));
@@ -455,9 +483,6 @@ impl ExeCode {
 
             let interactor_start_time = Instant::now();
             interactor_exe_resources.cgroup.add_task(CgroupPid::from(interactor_p.id() as u64)).unwrap();
-            let communicate_interactor_p = psutil::process::Process::new(interactor_p.id()).unwrap();
-            let mut interactor_p_stdin = interactor_p.stdin.take().unwrap();
-            let mut interactor_p_stdout = interactor_p.stdout.take().unwrap();
 
             let (interactor_sender, interactor_receiver) = mpsc::channel();
             let interactor_wait_handle = thread::spawn(move || {
@@ -477,11 +502,12 @@ impl ExeCode {
                 }
             });
             
-            let mut p = match Command::new(exe_resources.exe_command_path.as_str())
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
+            let mut p = match Command::new("./exe.sh")
+            .stdin(unsafe { std::fs::File::from_raw_fd(pipe_from_interactor_read) })
+            .stdout(unsafe { std::fs::File::from_raw_fd(pipe_to_interactor_write) })
             .stderr(File::create(exe_resources.stderr_path.as_str()).unwrap())
             .uid(exe_resources.uid)
+            .current_dir(exe_resources.exe_dir.path())
             .spawn() {
                     Err(_) => {
                         return Err((String::from("Runtime Error"), ProcessResource::default(), ProcessResource::default()));
@@ -492,9 +518,6 @@ impl ExeCode {
                 };
             let start_time = Instant::now();
             exe_resources.cgroup.add_task(CgroupPid::from(p.id() as u64)).unwrap();
-            let communicate_p = psutil::process::Process::new(p.id()).unwrap();
-            let mut p_stdin = p.stdin.take().unwrap();
-            let mut p_stdout = p.stdout.take().unwrap();
             let (sender, receiver) = mpsc::channel();
             
             let wait_handle = thread::spawn(move || {
@@ -513,39 +536,19 @@ impl ExeCode {
                     }
                 }
             });
-            let (eval_result_sender, eval_result_receiver) = mpsc::channel();
-            let communicate_handle = thread::spawn(move || {
-                let _ = interactor_p_stdin.write_all(&interactor_input);
-                let _ = interactor_p_stdin.flush();
-                let mut reader = BufReader::new(p_stdout);
-                let mut interactor_reader = BufReader::new(interactor_p_stdout);
-                let mut buf = String::new();
-                while communicate_interactor_p.is_running() && communicate_p.is_running() {
-                    let _ = interactor_reader.read_line(&mut buf);
-                    if buf == "END\n" {
-                        buf.clear();
-                        break;
-                    }
-                    let _ = p_stdin.write_all(buf.as_bytes());
-                    buf.clear();
-                    let _ = reader.read_line(&mut buf);
-                    let _ = interactor_p_stdin.write_all(buf.as_bytes());
-                    buf.clear();
-                }
-                let _ = interactor_reader.read_line(&mut buf);
-                eval_result_sender.send(buf.into_bytes().to_vec()).unwrap();
-            });
             let result = receiver.recv_timeout(Duration::from_millis(exe_resources.cpu_limit_ms));
+            if result.is_err() {
+                
+            }
             exe_resources.kill_processes();
-            let elasped_time_ms = start_time.elapsed().as_millis() as u64;
-            let interactor_result = interactor_receiver.recv_timeout(Duration::from_millis(std::cmp::max(exe_resources.cpu_limit_ms + interactor_exe_resources.cpu_limit_ms, elasped_time_ms) - elasped_time_ms));
+            let elasped_time_ms = interactor_start_time.elapsed().as_millis() as u64;
+            let interactor_result = interactor_receiver.recv_timeout(Duration::from_millis(std::cmp::max(interactor_exe_resources.cpu_limit_ms, elasped_time_ms) - elasped_time_ms));
             interactor_exe_resources.kill_processes();
             let memory_KB = exe_resources.max_usage_in_bytes() / 1024;
             let interactor_memory_KB = interactor_exe_resources.max_usage_in_bytes() / 1024;
             
             wait_handle.join().unwrap();
             interactor_wait_handle.join().unwrap();
-            communicate_handle.join().unwrap();
             
             let mut return_status = String::new(); 
             let mut p_resource = ProcessResource::default();
@@ -567,7 +570,7 @@ impl ExeCode {
                             interactor_resource = ProcessResource {
                                 memory_KB: interactor_memory_KB,
                                 runtime_ms: interactor_runtime_ms,
-                                stdout: eval_result_receiver.recv().unwrap(),
+                                stdout: interactor_exe_resources.read_interactorout(),
                                 stderr: interactor_exe_resources.read_stderr(),
                             };
                         }
