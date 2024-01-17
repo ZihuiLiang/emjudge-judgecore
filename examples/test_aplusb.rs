@@ -33,13 +33,6 @@ fn main() {
         input,
         output,
     );
-    println!("{:?}", result);
-    println!(
-        "Evaluator's stdout:\n{}",
-        String::from_utf8(result.clone().unwrap().1.stdout).unwrap()
-    );
-    println!(
-        "Evaluator's stderr:\n{}",
-        String::from_utf8(result.clone().unwrap().1.stderr).unwrap()
-    );
+    println!("Result of Tested Code: {}", result.clone().unwrap().0);
+    println!("Result of Evaluating Code: {}", result.clone().unwrap().1);
 }

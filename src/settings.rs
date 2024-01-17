@@ -8,6 +8,8 @@ use std::io::Write;
 use std::path::PathBuf;
 use toml;
 
+use crate::quantity::{MemorySize, TimeSpan};
+
 lazy_static! {
     pub static ref COMPILE_AND_EXE_SETTING: CompileAndExeSetting = {
         let result = CompileAndExeSetting::load();
@@ -88,34 +90,23 @@ impl CompileAndExeSetting {
 #[serde_as]
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct RunSetting {
-    #[serde(default = "RunSetting::memory_limit_KB_default")]
-    pub memory_limit_KB: u64,
-    #[serde(default = "RunSetting::cpu_limit_ms_default")]
-    pub cpu_limit_ms: u64,
+    #[serde(default = "RunSetting::memory_limit_default")]
+    pub memory_limit: MemorySize,
+    #[serde(default = "RunSetting::time_limit_default")]
+    pub time_limit: TimeSpan,
 }
 
 impl RunSetting {
-    fn memory_limit_KB_default() -> u64 {
-        1024 * 1024
+    fn memory_limit_default() -> MemorySize {
+        MemorySize::from_gigabytes(1)
     }
-    fn cpu_limit_ms_default() -> u64 {
-        1000 * 10
+    fn time_limit_default() -> TimeSpan {
+        TimeSpan::from_milliseconds(1000)
     }
     fn default() -> Self {
         RunSetting {
-            memory_limit_KB: Self::memory_limit_KB_default(),
-            cpu_limit_ms: Self::cpu_limit_ms_default(),
-        }
-    }
-
-    pub fn contain(&self, setting: &RunSetting) -> bool {
-        self.cpu_limit_ms >= setting.cpu_limit_ms && self.memory_limit_KB >= setting.cpu_limit_ms
-    }
-
-    pub fn merge(&self, setting: &RunSetting) -> RunSetting {
-        RunSetting {
-            memory_limit_KB: std::cmp::min(setting.memory_limit_KB, self.memory_limit_KB),
-            cpu_limit_ms: std::cmp::min(setting.cpu_limit_ms, self.cpu_limit_ms),
+            memory_limit: Self::memory_limit_default(),
+            time_limit: Self::time_limit_default(),
         }
     }
 

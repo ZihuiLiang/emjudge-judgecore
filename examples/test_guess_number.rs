@@ -18,14 +18,15 @@ fn main() {
         .unwrap()
         .read_to_end(&mut input)
         .unwrap();
-    let result = RunAndInteract::single(RawCode::new(tested_script, String::from("C++")), None, None, RawCode::new(interactor_script, String::from("C++")), None, None, input);
-    println!("{:?}", result);
-    println!(
-        "Interactor's stdout:\n{}",
-        String::from_utf8(result.clone().unwrap().1.stdout).unwrap()
+    let result = RunAndInteract::single(
+        RawCode::new(tested_script, String::from("C++")),
+        None,
+        None,
+        RawCode::new(interactor_script, String::from("C++")),
+        None,
+        None,
+        input,
     );
-    println!(
-        "Interactor's stderr:\n{}",
-        String::from_utf8(result.clone().unwrap().1.stderr).unwrap()
-    );
+    println!("Result of Tested Code: {}", result.clone().unwrap().0);
+    println!("Result of Interactor: {}", result.clone().unwrap().1);
 }

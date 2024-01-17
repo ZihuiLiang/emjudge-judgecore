@@ -1,6 +1,6 @@
 use std::{fs::File, io::Read};
 
-use emjudge_judgecore::{program::RawCode, test::OnlyRun};
+use emjudge_judgecore::{program::RawCode, quantity::MemorySize, test::OnlyRun};
 
 fn main() {
     let mut script = vec![];
@@ -11,8 +11,9 @@ fn main() {
     let result = OnlyRun::single(
         RawCode::new(script, String::from("C++")),
         None,
-        Some(1024),
+        Some(MemorySize::from_megabytes(1)),
         vec![],
     );
-    println!("{:?}", result);
+    println!("Status of Tested Code: {}", result.clone().unwrap_err().0);
+    println!("Result of Tested Code: {}", result.clone().unwrap_err().1);
 }

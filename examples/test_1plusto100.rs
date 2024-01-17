@@ -18,6 +18,7 @@ fn main() {
         .unwrap()
         .read_to_end(&mut std_ans)
         .unwrap();
+
     let result = AnsAndEval::single(
         RawCode::new(eval_script, String::from("C++")),
         None,
@@ -25,13 +26,5 @@ fn main() {
         tested_ans,
         std_ans,
     );
-    println!("{:?}", result);
-    println!(
-        "Evaluator's stdout:\n{}",
-        String::from_utf8(result.clone().unwrap().stdout).unwrap()
-    );
-    println!(
-        "Evaluator's stderr:\n{}",
-        String::from_utf8(result.clone().unwrap().stderr).unwrap()
-    );
+    println!("Result of Evaluating Code: {}", result.clone().unwrap());
 }

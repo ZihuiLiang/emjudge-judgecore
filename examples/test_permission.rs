@@ -14,13 +14,5 @@ fn main() {
         None,
         vec![],
     );
-    println!("{:?}", result);
-    println!(
-        "stdout:\n{:?}",
-        String::from_utf8(result.clone().unwrap().stdout).unwrap()
-    );
-    println!(
-        "stderr:\n{:?}",
-        String::from_utf8(result.clone().unwrap().stderr).unwrap()
-    );
+    println!("Result of Tested Code: {}", result.clone().unwrap());
 }

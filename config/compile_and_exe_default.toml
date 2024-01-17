@@ -1,17 +1,17 @@
 [languages.Python3]
+exe_file = "main.py3"
 exe_command = """
 #!/bin/bash
 ulimit -s unlimited
 python3 main.py3"""
-exe_file = "main.py3"
 
 [languages."C++"]
+compile_command = """
+#!/bin/bash
+g++ main.cpp -o main"""
+exe_file = "main"
+raw_code = "main.cpp"
 exe_command = """
 #!/bin/bash
 ulimit -s unlimited
 main"""
-compile_command = """
-#!/bin/bash
-g++ main.cpp -o main"""
-raw_code = "main.cpp"
-exe_file = "main"

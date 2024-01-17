@@ -1,6 +1,6 @@
 use std::{fs::File, io::Read};
 
-use emjudge_judgecore::{program::RawCode, test::OnlyRun};
+use emjudge_judgecore::{program::RawCode, quantity::TimeSpan, test::OnlyRun};
 
 fn main() {
     let mut script = vec![];
@@ -10,9 +10,10 @@ fn main() {
         .unwrap();
     let result = OnlyRun::single(
         RawCode::new(script, String::from("C++")),
-        Some(500),
+        Some(TimeSpan::from_milliseconds(500)),
         None,
         vec![],
     );
-    println!("{:?}", result);
+    println!("Status of Tested Code: {}", result.clone().unwrap_err().0);
+    println!("Result of Tested Code: {}", result.clone().unwrap_err().1);
 }
