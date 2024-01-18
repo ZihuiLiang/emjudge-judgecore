@@ -1,4 +1,6 @@
-pub mod program;
 pub mod quantity;
 pub mod settings;
-pub mod test;
+#[cfg(feature = "thread")]
+pub mod thread_mode;
+#[cfg(feature = "async")]
+pub mod async_mode;

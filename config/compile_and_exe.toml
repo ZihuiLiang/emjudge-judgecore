@@ -1,121 +1,30 @@
-[languages.Perl]
+[languages.PHP]
+exe_code = "main.php"
 exe_command = """
 #!/bin/bash
 ulimit -s unlimited
-./main.pl"""
-exe_code = "main.pl"
-
-[languages.Smalltalk]
-exe_command = """
-#!/bin/bash
-ulimit -s unlimited
-gst main.st"""
-exe_code = "main.st"
-
-[languages."Python 2"]
-exe_command = """
-#!/bin/bash
-ulimit -s unlimited
-python2 main.py2"""
-exe_code = "main.py2"
-
-[languages.Fortran]
-exe_code = "main"
-raw_code = "main.f90"
-compile_command = """
-#!/bin/bash
-gfortran -o main main.f90 -ffree-form"""
-exe_command = """
-#!/bin/bash
-ulimit -s unlimited
-./main"""
-
-[languages.OCaml]
-exe_command = """
-#!/bin/bash
-ulimit -s unlimited
-./main"""
-exe_code = "main"
-raw_code = "main.ml"
-compile_command = """
-#!/bin/bash
-ocamlc main.ml -o main"""
-
-[languages.Scala]
-exe_code1 = "Main$.class"
-raw_code = "Main.scala"
-exe_command = """
-#!/bin/bash
-ulimit -s unlimited
-scala -J-Xmx4g -J-Xss256m Main"""
-exe_code0 = "Main.class"
-compile_command = """
-#!/bin/bash
-scalac -d . Main.scala"""
-
-[languages.Javascript]
-exe_code = "main.js"
-exe_command = "node main.js"
-
-[languages.Swift]
-compile_command = """
-#!/bin/bash
-swiftc main.swift -o main"""
-raw_code = "main.swift"
-exe_command = """
-#!/bin/bash
-ulimit -s unlimited
-./main"""
-exe_code = "main"
-
-[languages.Go]
-compile_command = """
-#!/bin/bash
-go build -o main main.go"""
-exe_code = "main"
-raw_code = "main.go"
-exe_command = """
-#!/bin/bash
-ulimit -s unlimited
-./main"""
+php main.php"""
 
 [languages.C]
+exe_code = "main"
 compile_command = """
 #!/bin/bash
 gcc main.c -o main -O2 -lm -w -Wno-unused-result"""
-exe_code = "main"
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+./main"""
 raw_code = "main.c"
-exe_command = """
-#!/bin/bash
-ulimit -s unlimited
-./main"""
-
-[languages.Tcl]
-exe_command = """
-#!/bin/bash
-ulimit -s unlimited
-./main.tcl"""
-exe_code = "main.tcl"
-
-[languages.Objective-C]
-raw_code = "main.m"
-exe_code = "main"
-exe_command = """
-#!/bin/bash
-ulimit -s unlimited
-./main"""
-compile_command = """
-#!/bin/bash
-gcc -I $(gnustep-config --variable=GNUSTEP_SYSTEM_HEADERS) -L $(gnustep-config --variable=GNUSTEP_SYSTEM_LIBRARIES) -o main main.m -lgnustep-base -fconstant-string-class=NSConstantString -D_NATIVE_OBJC_EXCEPTIONS -Wl,--no-as-needed -lgnustep-base -lobjc"""
 
 [languages.Julia]
-exe_code = "main.jl"
 exe_command = """
 #!/bin/bash
 ulimit -s unlimited
 julia --startup-file=no main.jl"""
+exe_code = "main.jl"
 
 [languages.Ada]
+exe_code = "main"
 compile_command = """
 #!/bin/bash
 gnatmake -o main main.adb"""
@@ -124,47 +33,24 @@ exe_command = """
 #!/bin/bash
 ulimit -s unlimited
 ./main"""
-exe_code = "main"
-
-[languages."C++"]
-compile_command = """
-#!/bin/bash
-g++ main.cpp -o main -static -O2 -lm -w -Wno-unused-result -std=c++2a"""
-raw_code = "main.cpp"
-exe_command = """
-#!/bin/bash
-ulimit -s unlimited
-./main"""
-exe_code = "main"
-
-[languages.Java]
-raw_code = "Main.java"
-exe_code = "Main.class"
-exe_command = """
-#!/bin/bash
-ulimit -s unlimited
-java -Xmx4g -Xss256m Main"""
-compile_command = """
-#!/bin/bash
-javac Main.java"""
-
-[languages."Common LISP"]
-exe_command = """
-#!/bin/bash
-ulimit -s unlimited
-sbcl --script main.lisp"""
-exe_code = "main.lisp"
 
 [languages.Rust]
-exe_code = "main"
+compile_command = """
+#!/bin/bash
+rustc main.rs -o main"""
 raw_code = "main.rs"
 exe_command = """
 #!/bin/bash
 ulimit -s unlimited
 ./main"""
-compile_command = """
+exe_code = "main"
+
+[languages."Pypy 2"]
+exe_command = """
 #!/bin/bash
-rustc main.rs -o main"""
+ulimit -s unlimited
+pypy2 main.py2"""
+exe_code = "main.py2"
 
 [languages.Lua]
 exe_code = "main.lua"
@@ -173,23 +59,122 @@ exe_command = """
 ulimit -s unlimited
 lua main.lua"""
 
+[languages.OCaml]
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+./main"""
+raw_code = "main.ml"
+exe_code = "main"
+compile_command = """
+#!/bin/bash
+ocamlc main.ml -o main"""
+
+[languages.COBOL]
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+./main"""
+raw_code = "main.cob"
+compile_command = """
+#!/bin/bash
+cobc -free -x main.cob -o main"""
+exe_code = "main"
+
+[languages.Tcl]
+exe_code = "main.tcl"
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+./main.tcl"""
+
+[languages.Scala]
+exe_code0 = "Main.class"
+raw_code = "Main.scala"
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+scala -J-Xmx4g -J-Xss256m Main"""
+exe_code1 = "Main$.class"
+compile_command = """
+#!/bin/bash
+scalac -d . Main.scala"""
+
+[languages."Pypy 3"]
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+pypy3 main.py3"""
+exe_code = "main.py3"
+
+[languages.Perl]
+exe_code = "main.pl"
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+./main.pl"""
+
 [languages."C#"]
+raw_code = "main.cs"
 compile_command = """
 #!/bin/bash
 mcs -out:main main.cs"""
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+./main"""
 exe_code = "main"
-raw_code = "main.cs"
+
+[languages."Common LISP"]
+exe_code = "main.lisp"
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+sbcl --script main.lisp"""
+
+[languages.Swift]
+raw_code = "main.swift"
+exe_code = "main"
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+./main"""
+compile_command = """
+#!/bin/bash
+swiftc main.swift -o main"""
+
+[languages.Ruby]
+exe_code = "main.rb"
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+ruby main.rb"""
+
+[languages.Go]
+exe_code = "main"
+raw_code = "main.go"
+compile_command = """
+#!/bin/bash
+go build -o main main.go"""
 exe_command = """
 #!/bin/bash
 ulimit -s unlimited
 ./main"""
 
-[languages."Pypy 2"]
-exe_code = "main.py2"
+[languages.Javascript]
+exe_code = "main.js"
+exe_command = "node main.js"
+
+[languages.Java]
+raw_code = "Main.java"
+compile_command = """
+#!/bin/bash
+javac Main.java"""
 exe_command = """
 #!/bin/bash
 ulimit -s unlimited
-pypy2 main.py2"""
+java -Xmx4g -Xss256m Main"""
+exe_code = "Main.class"
 
 [languages.Octave]
 exe_command = """
@@ -198,52 +183,67 @@ ulimit -s unlimited
 octave --no-gui --no-window-system main.m"""
 exe_code = "main.m"
 
-[languages.PHP]
-exe_code = "main.php"
+[languages.Fortran]
+exe_code = "main"
+raw_code = "main.f90"
 exe_command = """
 #!/bin/bash
 ulimit -s unlimited
-php main.php"""
+./main"""
+compile_command = """
+#!/bin/bash
+gfortran -o main main.f90 -ffree-form"""
+
+[languages."C++"]
+raw_code = "main.cpp"
+exe_code = "main"
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+./main"""
+compile_command = """
+#!/bin/bash
+g++ main.cpp -o main -static -O2 -lm -w -Wno-unused-result -std=c++2a"""
 
 [languages.Kotlin]
 raw_code = "Main.kt"
-compile_command = """
-#!/bin/bash
-kotlinc Main.kt -include-runtime -d Main.jar"""
 exe_command = """
 #!/bin/bash
 ulimit -s unlimited
 kotlin Main.jar"""
 exe_code = "Main.jar"
+compile_command = """
+#!/bin/bash
+kotlinc Main.kt -include-runtime -d Main.jar"""
+
+[languages."Python 2"]
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+python2 main.py2"""
+exe_code = "main.py2"
+
+[languages.Smalltalk]
+exe_command = """
+#!/bin/bash
+ulimit -s unlimited
+gst main.st"""
+exe_code = "main.st"
 
 [languages."Python 3"]
+exe_code = "main.py3"
 exe_command = """
 #!/bin/bash
 ulimit -s unlimited
 python3 main.py3"""
-exe_code = "main.py3"
 
-[languages.Ruby]
-exe_command = """
-#!/bin/bash
-ulimit -s unlimited
-ruby main.rb"""
-exe_code = "main.rb"
-
-[languages.COBOL]
+[languages.Objective-C]
 exe_command = """
 #!/bin/bash
 ulimit -s unlimited
 ./main"""
+raw_code = "main.m"
 exe_code = "main"
 compile_command = """
 #!/bin/bash
-cobc -free -x main.cob -o main"""
-raw_code = "main.cob"
-
-[languages."Pypy 3"]
-exe_code = "main.py3"
-exe_command = """
-#!/bin/bash
-ulimit -s unlimited
-pypy3 main.py3"""
+gcc -I $(gnustep-config --variable=GNUSTEP_SYSTEM_HEADERS) -L $(gnustep-config --variable=GNUSTEP_SYSTEM_LIBRARIES) -o main main.m -lgnustep-base -fconstant-string-class=NSConstantString -D_NATIVE_OBJC_EXCEPTIONS -Wl,--no-as-needed -lgnustep-base -lobjc"""
