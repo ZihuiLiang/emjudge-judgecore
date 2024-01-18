@@ -1,6 +1,4 @@
 /target
-/run
-/compile
 Cargo.lock
 guide/build/
 /gh-pages
