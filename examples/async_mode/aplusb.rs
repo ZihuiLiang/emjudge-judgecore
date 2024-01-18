@@ -7,21 +7,29 @@ async fn main() {
     let mut tested_script = vec![];
     let mut input = vec![];
     let mut output = vec![];
-    tokio::fs::File::open("examples/programs/aplusb/eval.cpp").await
+    tokio::fs::File::open("examples/programs/aplusb/eval.cpp")
+        .await
         .unwrap()
-        .read_to_end(&mut eval_script).await
+        .read_to_end(&mut eval_script)
+        .await
         .unwrap();
-    tokio::fs::File::open("examples/programs/aplusb/tested.cpp").await
+    tokio::fs::File::open("examples/programs/aplusb/tested.cpp")
+        .await
         .unwrap()
-        .read_to_end(&mut tested_script).await
+        .read_to_end(&mut tested_script)
+        .await
         .unwrap();
-    tokio::fs::File::open("examples/programs/aplusb/input").await
+    tokio::fs::File::open("examples/programs/aplusb/input")
+        .await
         .unwrap()
-        .read_to_end(&mut input).await
+        .read_to_end(&mut input)
+        .await
         .unwrap();
-    tokio::fs::File::open("examples/programs/aplusb/output").await
+    tokio::fs::File::open("examples/programs/aplusb/output")
+        .await
         .unwrap()
-        .read_to_end(&mut output).await
+        .read_to_end(&mut output)
+        .await
         .unwrap();
     let result = RunAndEval::single(
         RawCode::new(tested_script, String::from("C++")),
@@ -32,7 +40,8 @@ async fn main() {
         None,
         input,
         output,
-    ).await;
+    )
+    .await;
     println!("Result of Tested Code: {}", result.clone().unwrap().0);
     println!("Result of Evaluating Code: {}", result.clone().unwrap().1);
 }

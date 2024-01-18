@@ -59,11 +59,14 @@ pub mod RunAndEval {
             }
             Ok(result) => result,
         };
-        let tested_code_resource = match exe_tested_code.run_to_end(
-            input.clone(),
-            tested_code_time_limit,
-            tested_code_memory_limit,
-        ).await {
+        let tested_code_resource = match exe_tested_code
+            .run_to_end(
+                input.clone(),
+                tested_code_time_limit,
+                tested_code_memory_limit,
+            )
+            .await
+        {
             Err(result) => return Err((result.0, result.1, ProcessResource::default())),
             Ok(result) => result,
         };
@@ -76,11 +79,10 @@ pub mod RunAndEval {
         eval_input.append(&mut tested_code_resource.stdout.clone());
         eval_input.append(&mut Vec::from((output.len() as u64).to_le_bytes()));
         eval_input.append(&mut output.clone());
-        let eval_code_resource = match exe_eval_code.run_to_end(
-            eval_input,
-            eval_code_time_limit,
-            eval_code_memory_limit,
-        ).await {
+        let eval_code_resource = match exe_eval_code
+            .run_to_end(eval_input, eval_code_time_limit, eval_code_memory_limit)
+            .await
+        {
             Err(result) => {
                 return Err((
                     String::from("Eval ") + result.0.as_str(),
@@ -122,11 +124,10 @@ pub mod AnsAndEval {
         eval_input.append(&mut tested_ans.clone());
         eval_input.append(&mut Vec::from((std_ans.len() as u64).to_le_bytes()));
         eval_input.append(&mut std_ans.clone());
-        let eval_code_resource = match exe_eval_code.run_to_end(
-            eval_input,
-            eval_code_time_limit,
-            eval_code_memory_limit,
-        ).await {
+        let eval_code_resource = match exe_eval_code
+            .run_to_end(eval_input, eval_code_time_limit, eval_code_memory_limit)
+            .await
+        {
             Err(result) => return Err((String::from("Eval ") + result.0.as_str(), result.1)),
             Ok(result) => result,
         };
@@ -170,13 +171,15 @@ pub mod RunAndInteract {
             }
             Ok(result) => result,
         };
-        exe_tested_code.run_with_interactor(
-            tested_code_time_limit,
-            tested_code_memory_limit,
-            exe_interactor_code,
-            interactor_code_extra_time_limit,
-            interactor_code_memory_limit,
-            interactor_code_input,
-        ).await
+        exe_tested_code
+            .run_with_interactor(
+                tested_code_time_limit,
+                tested_code_memory_limit,
+                exe_interactor_code,
+                interactor_code_extra_time_limit,
+                interactor_code_memory_limit,
+                interactor_code_input,
+            )
+            .await
     }
 }

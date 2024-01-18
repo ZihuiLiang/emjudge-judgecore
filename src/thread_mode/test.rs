@@ -2,8 +2,8 @@
 
 pub mod OnlyRun {
     use crate::{
-        thread_mode::program::RawCode,
         quantity::{MemorySize, ProcessResource, TimeSpan},
+        thread_mode::program::RawCode,
     };
 
     pub fn single(
@@ -24,8 +24,8 @@ pub mod OnlyRun {
 
 pub mod RunAndEval {
     use crate::{
-        thread_mode::program::RawCode,
         quantity::{MemorySize, ProcessResource, TimeSpan},
+        thread_mode::program::RawCode,
     };
 
     pub fn single(
@@ -96,8 +96,8 @@ pub mod RunAndEval {
 
 pub mod AnsAndEval {
     use crate::{
-        thread_mode::program::RawCode,
         quantity::{MemorySize, ProcessResource, TimeSpan},
+        thread_mode::program::RawCode,
     };
 
     pub fn single(
@@ -136,8 +136,8 @@ pub mod AnsAndEval {
 
 pub mod RunAndInteract {
     use crate::{
-        thread_mode::program::RawCode,
         quantity::{MemorySize, ProcessResource, TimeSpan},
+        thread_mode::program::RawCode,
     };
 
     pub fn single(

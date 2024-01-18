@@ -1,6 +1,5 @@
 use std::{fs::File, io::Read};
 
-
 use emjudge_judgecore::thread_mode::{program::RawCode, test::RunAndEval};
 
 fn main() {

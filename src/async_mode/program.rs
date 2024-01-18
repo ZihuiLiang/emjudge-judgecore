@@ -5,8 +5,6 @@ use cgroups_rs::cgroup_builder::CgroupBuilder;
 use cgroups_rs::memory::MemController;
 use cgroups_rs::{Cgroup, CgroupPid};
 use serde::{Deserialize, Serialize};
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::time::Instant;
 use std::collections::HashMap;
 use std::os::fd::FromRawFd;
 use std::os::unix::fs::PermissionsExt;
@@ -14,6 +12,8 @@ use std::process::Stdio;
 use std::sync::mpsc::Receiver;
 use std::time::Duration;
 use tempfile::TempDir;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::time::Instant;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct RawCode {
@@ -64,16 +64,26 @@ impl RawCode {
         let raw_code_path = raw_code_path.as_str();
         let compile_command_path = format!("{}/compile.sh", compile_dir.path().to_str().unwrap());
         let compile_command_path = compile_command_path.as_str();
-        tokio::fs::File::create(raw_code_path).await
+        tokio::fs::File::create(raw_code_path)
+            .await
             .unwrap()
-            .write_all(&self.script).await.unwrap();
-        tokio::fs::File::create(compile_command_path).await
-            .unwrap()
-            .write_all(compile_command.as_bytes()).await
+            .write_all(&self.script)
+            .await
             .unwrap();
-        let mut permissions = tokio::fs::metadata(compile_command_path).await.unwrap().permissions();
+        tokio::fs::File::create(compile_command_path)
+            .await
+            .unwrap()
+            .write_all(compile_command.as_bytes())
+            .await
+            .unwrap();
+        let mut permissions = tokio::fs::metadata(compile_command_path)
+            .await
+            .unwrap()
+            .permissions();
         permissions.set_mode(0o700);
-        tokio::fs::set_permissions(&compile_command_path, permissions.clone()).await.unwrap();
+        tokio::fs::set_permissions(&compile_command_path, permissions.clone())
+            .await
+            .unwrap();
         let p = tokio::process::Command::new("./compile.sh")
             .stdout(Stdio::null())
             .stderr(Stdio::piped())
@@ -87,7 +97,13 @@ impl RawCode {
             return Err(result.to_string());
         }
         let mut stderr_output = String::new();
-        if let Err(result) = p.stderr.take().unwrap().read_to_string(&mut stderr_output).await {
+        if let Err(result) = p
+            .stderr
+            .take()
+            .unwrap()
+            .read_to_string(&mut stderr_output)
+            .await
+        {
             return Err(result.to_string());
         }
         let mut exe_codes = HashMap::new();
@@ -375,27 +391,33 @@ impl ExeResources {
 
     async fn read_stdout(&self) -> Vec<u8> {
         let mut buf = vec![];
-        tokio::fs::File::open(self.stdout_path.as_str()).await
+        tokio::fs::File::open(self.stdout_path.as_str())
+            .await
             .unwrap()
-            .read_to_end(&mut buf).await
+            .read_to_end(&mut buf)
+            .await
             .unwrap();
         buf
     }
 
     async fn read_stderr(&self) -> Vec<u8> {
         let mut buf = vec![];
-        tokio::fs::File::open(self.stderr_path.as_str()).await
+        tokio::fs::File::open(self.stderr_path.as_str())
+            .await
             .unwrap()
-            .read_to_end(&mut buf).await
+            .read_to_end(&mut buf)
+            .await
             .unwrap();
         buf
     }
 
     async fn read_interactorout(&self) -> Vec<u8> {
         let mut buf = vec![];
-        tokio::fs::File::open(self.interactorout_path.as_str()).await
+        tokio::fs::File::open(self.interactorout_path.as_str())
+            .await
             .unwrap()
-            .read_to_end(&mut buf).await
+            .read_to_end(&mut buf)
+            .await
             .unwrap();
         buf
     }
@@ -445,7 +467,9 @@ impl ExeCode {
             self.language.clone(),
             time_limit,
             memory_limit,
-        ).await {
+        )
+        .await
+        {
             Ok(result) => result,
             Err(result) => {
                 return Err((result, ProcessResource::default()));
@@ -499,7 +523,8 @@ impl ExeCode {
                     }
                     Ok(_) => {}
                 }
-                let result = tokio::time::timeout(Duration::from(exe_resources.time_limit), p.wait()).await;
+                let result =
+                    tokio::time::timeout(Duration::from(exe_resources.time_limit), p.wait()).await;
                 let runtime = TimeSpan::from(start_time.elapsed());
                 let memory = MemorySize::from_bytes(exe_resources.max_usage_in_bytes() as usize);
                 exe_resources.kill_processes();
@@ -513,7 +538,7 @@ impl ExeCode {
                             stderr: exe_resources.read_stderr().await,
                         },
                     ));
-                } 
+                }
                 let in_time_result = if result.is_err() || runtime > exe_resources.time_limit {
                     return Err((
                         String::from("Time Limit Exceed"),
@@ -564,7 +589,9 @@ impl ExeCode {
             self.language.clone(),
             time_limit,
             memory_limit,
-        ).await {
+        )
+        .await
+        {
             Ok(result) => result,
             Err(result) => {
                 return Err((
@@ -579,7 +606,9 @@ impl ExeCode {
             interactor.language.clone(),
             interactor_extra_time_limit,
             interactor_memory_limit,
-        ).await {
+        )
+        .await
+        {
             Ok(result) => result,
             Err(result) => {
                 return Err((
@@ -615,7 +644,8 @@ impl ExeCode {
         };
 
         let mut interactor_p = {
-            let stderr = match std::fs::File::create(interactor_exe_resources.stderr_path.as_str()) {
+            let stderr = match std::fs::File::create(interactor_exe_resources.stderr_path.as_str())
+            {
                 Err(result) => {
                     return Err((
                         result.to_string(),
@@ -659,7 +689,6 @@ impl ExeCode {
             }
             Ok(_) => {}
         };
-
 
         let mut p = {
             let stderr = match std::fs::File::create(exe_resources.stderr_path.as_str()) {
@@ -707,16 +736,14 @@ impl ExeCode {
             Ok(_) => {}
         };
 
-        let result = tokio::time::timeout(
-            Duration::from(exe_resources.time_limit),
-            p.wait(),
-        ).await;
+        let result = tokio::time::timeout(Duration::from(exe_resources.time_limit), p.wait()).await;
         let runtime = TimeSpan::from(start_time.elapsed());
         exe_resources.kill_processes();
         let interactor_result = tokio::time::timeout(
             Duration::from(interactor_exe_resources.time_limit),
             interactor_p.wait(),
-        ).await;
+        )
+        .await;
         let interactor_runtime = TimeSpan::from(interactor_start_time.elapsed());
         interactor_exe_resources.kill_processes();
         let memory = MemorySize::from_bytes(exe_resources.max_usage_in_bytes() as usize);
@@ -745,13 +772,16 @@ impl ExeCode {
                 String::from("Interactor Memory Limit Exceed")
             } else if interactor_result.is_err() {
                 String::from("Interactor Time Limit Exceed")
-            } else if interactor_result.unwrap().is_ok_and(|status| status.success()) {
+            } else if interactor_result
+                .unwrap()
+                .is_ok_and(|status| status.success())
+            {
                 String::new()
             } else {
                 String::from("Interactor Runtime Error")
             }
         };
-       
+
         if return_status.is_empty() {
             Ok((p_resource, interactor_resource))
         } else {

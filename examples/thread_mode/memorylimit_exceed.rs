@@ -1,6 +1,9 @@
 use std::{fs::File, io::Read};
 
-use emjudge_judgecore::{thread_mode::{program::RawCode, test::OnlyRun}, quantity::MemorySize};
+use emjudge_judgecore::{
+    quantity::MemorySize,
+    thread_mode::{program::RawCode, test::OnlyRun},
+};
 
 fn main() {
     let mut script = vec![];
