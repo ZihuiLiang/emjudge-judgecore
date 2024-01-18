@@ -1,13 +1,13 @@
 [languages."C++"]
-exe_file = "main"
+compile_command = """
+#!/bin/bash
+g++ main.cpp -o main"""
 exe_command = """
 #!/bin/bash
 ulimit -s unlimited
 main"""
+exe_file = "main"
 raw_code = "main.cpp"
-compile_command = """
-#!/bin/bash
-g++ main.cpp -o main"""
 
 [languages.Python3]
 exe_command = """
