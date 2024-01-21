@@ -1,8 +1,8 @@
-use std::{fs::File, io::Read};
+use std::{fs, io::Read};
 
-use emjudge_judgecore::thread_mode::{program::RawCode, test::OnlyRun};
+use emjudge_judgecore::{thread_mode::{program::RawCode, test::OnlyRun}, quantity::{MemorySize, TimeSpan}, settings::{create_a_tmp_user_return_uid, CompileAndExeSettings}};
 
-fn main() {
+ fn main() {
     test_cpp();
     test_c();
     test_java();
@@ -33,435 +33,704 @@ fn main() {
     test_pypy2();
 }
 
-fn test_cpp() {
+ fn test_cpp() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test C++:");
     let mut script = vec![];
-    File::open("examples/programs/helloworld.cpp")
+    fs::File::open("examples/programs/helloworld.cpp")
+        
         .unwrap()
         .read_to_end(&mut script)
+        
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("C++")),
-        None,
-        None,
-        vec![],
-    );
+        &RawCode::new(&script, compile_and_exe_settings.get_language("C++").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
+    )
+    ;
     println!("Result: {}", result.clone().unwrap());
 }
 
-fn test_c() {
+ fn test_c() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test C:");
     let mut script = vec![];
-    File::open("examples/programs/helloworld.c")
+    fs::File::open("examples/programs/helloworld.c")
+        
         .unwrap()
         .read_to_end(&mut script)
+        
         .unwrap();
-    let result = OnlyRun::single(RawCode::new(script, String::from("C")), None, None, vec![]);
+    let result = OnlyRun::single(
+        &RawCode::new(&script, compile_and_exe_settings.get_language("C").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
+    )
+    ;
     println!("Result: {}", result.clone().unwrap());
 }
 
-fn test_java() {
+ fn test_java() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Java:");
     let mut script = vec![];
-    File::open("examples/programs/helloworld.java")
+    fs::File::open("examples/programs/helloworld.java")
+        
         .unwrap()
         .read_to_end(&mut script)
+        
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Java")),
-        None,
-        None,
-        vec![],
-    );
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Java").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
+    )
+    ;
     println!("Result: {}", result.clone().unwrap());
 }
 
-fn test_python3() {
+ fn test_python3() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Python 3:");
     let mut script = vec![];
-    File::open("examples/programs/helloworld.py3")
+    fs::File::open("examples/programs/helloworld.py3")
+        
         .unwrap()
         .read_to_end(&mut script)
+        
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Python 3")),
-        None,
-        None,
-        vec![],
-    );
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Python 3").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
+    )
+    ;
     println!("Result: {}", result.clone().unwrap());
 }
 
-fn test_pypy3() {
+ fn test_pypy3() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Pypy 3:");
     let mut script = vec![];
-    File::open("examples/programs/helloworld.py3")
+    fs::File::open("examples/programs/helloworld.py3")
+        
         .unwrap()
         .read_to_end(&mut script)
+        
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Pypy 3")),
-        None,
-        None,
-        vec![],
-    );
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Pypy 3").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
+    )
+    ;
     println!("Result: {}", result.clone().unwrap());
 }
 
-fn test_python2() {
+ fn test_python2() {
+
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Python 2:");
     let mut script = vec![];
-    File::open("examples/programs/helloworld.py2")
+    fs::File::open("examples/programs/helloworld.py2")
+        
         .unwrap()
         .read_to_end(&mut script)
+        
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Python 2")),
-        None,
-        None,
-        vec![],
-    );
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Python 2").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
+    )
+    ;
     println!("Result: {}", result.clone().unwrap());
 }
 
-fn test_ruby() {
+ fn test_ruby() {
+
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Ruby:");
     let mut script = vec![];
-    File::open("examples/programs/helloworld.rb")
+    fs::File::open("examples/programs/helloworld.rb")
+        
         .unwrap()
         .read_to_end(&mut script)
+        
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Ruby")),
-        None,
-        None,
-        vec![],
-    );
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Ruby").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
+    )
+    ;
     println!("Result: {}", result.clone().unwrap());
 }
 
-fn test_perl() {
+ fn test_perl() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Perl:");
     let mut script = vec![];
-    File::open("examples/programs/helloworld.pl")
+    fs::File::open("examples/programs/helloworld.pl")
+        
         .unwrap()
         .read_to_end(&mut script)
+        
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Perl")),
-        None,
-        None,
-        vec![],
-    );
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Perl").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
+    )
+    ;
     println!("Result: {}", result.clone().unwrap());
 }
 
-fn test_cs() {
+ fn test_cs() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test C#:");
     let mut script = vec![];
-    File::open("examples/programs/helloworld.cs")
+    fs::File::open("examples/programs/helloworld.cs")
+        
         .unwrap()
         .read_to_end(&mut script)
+        
         .unwrap();
-    let result = OnlyRun::single(RawCode::new(script, String::from("C#")), None, None, vec![]);
+    let result = OnlyRun::single(
+        &RawCode::new(&script, compile_and_exe_settings.get_language("C#").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
+    )
+    ;
     println!("Result: {}", result.clone().unwrap());
 }
 
-fn test_objective_c() {
+ fn test_objective_c() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Objective-C:");
     let mut script = vec![];
-    File::open("examples/programs/helloworld.m")
+    fs::File::open("examples/programs/helloworld.m")
+        
         .unwrap()
         .read_to_end(&mut script)
+        
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Objective-C")),
-        None,
-        None,
-        vec![],
-    );
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Objective-C").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
+    )
+    ;
     println!("Result: {}", result.clone().unwrap());
 }
 
-fn test_swift() {
+ fn test_swift() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Swift:");
     let mut script = vec![];
-    File::open("examples/programs/helloworld.swift")
+    fs::File::open("examples/programs/helloworld.swift")
+        
         .unwrap()
         .read_to_end(&mut script)
+        
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Swift")),
-        None,
-        None,
-        vec![],
-    );
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Swift").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
+    )
+    ;
     println!("Result: {}", result.clone().unwrap());
 }
 
-fn test_go() {
+ fn test_go() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Go:");
     let mut script = vec![];
-    File::open("examples/programs/helloworld.go")
+    fs::File::open("examples/programs/helloworld.go")
+        
         .unwrap()
         .read_to_end(&mut script)
+        
         .unwrap();
-    let result = OnlyRun::single(RawCode::new(script, String::from("Go")), None, None, vec![]);
+    let result = OnlyRun::single(
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Go").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
+    )
+    ;
     println!("Result: {}", result.clone().unwrap());
 }
 
-fn test_javascript() {
+ fn test_javascript() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Javascript:");
     let mut script = vec![];
-    File::open("examples/programs/helloworld.js")
+    fs::File::open("examples/programs/helloworld.js")
+        
         .unwrap()
         .read_to_end(&mut script)
+        
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Javascript")),
-        None,
-        None,
-        vec![],
-    );
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Javascript").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
+    )
+    ;
     println!("Result: {}", result.clone().unwrap());
 }
 
-fn test_rust() {
+ fn test_rust() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Rust:");
     let mut script = vec![];
-    File::open("examples/programs/helloworld.rs")
+    fs::File::open("examples/programs/helloworld.rs")
+        
         .unwrap()
         .read_to_end(&mut script)
+        
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Rust")),
-        None,
-        None,
-        vec![],
-    );
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Rust").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
+    )
+    ;
     println!("Result: {}", result.clone().unwrap());
 }
 
-fn test_kotlin() {
+ fn test_kotlin() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Kotlin:");
     let mut script = vec![];
-    File::open("examples/programs/helloworld.kt")
+    fs::File::open("examples/programs/helloworld.kt")
+        
         .unwrap()
         .read_to_end(&mut script)
+        
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Kotlin")),
-        None,
-        None,
-        vec![],
-    );
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Kotlin").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
+    )
+    ;
     println!("Result: {}", result.clone().unwrap());
 }
 
-fn test_julia() {
+ fn test_julia() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Julia:");
     let mut script = vec![];
-    File::open("examples/programs/helloworld.jl")
+    fs::File::open("examples/programs/helloworld.jl")
+        
         .unwrap()
         .read_to_end(&mut script)
+        
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Julia")),
-        None,
-        None,
-        vec![],
-    );
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Julia").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
+    )
+    ;
     println!("Result: {}", result.clone().unwrap());
 }
 
-fn test_fortran() {
+ fn test_fortran() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Fortran:");
     let mut script = vec![];
-    File::open("examples/programs/helloworld.f90")
+    fs::File::open("examples/programs/helloworld.f90")
+        
         .unwrap()
         .read_to_end(&mut script)
+        
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Fortran")),
-        None,
-        None,
-        vec![],
-    );
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Fortran").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
+    )
+    ;
     println!("Result: {}", result.clone().unwrap());
 }
 
-fn test_lua() {
+ fn test_lua() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Lua:");
     let mut script = vec![];
-    File::open("examples/programs/helloworld.lua")
+    fs::File::open("examples/programs/helloworld.lua")
+        
         .unwrap()
         .read_to_end(&mut script)
+        
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Lua")),
-        None,
-        None,
-        vec![],
-    );
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Lua").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
+    )
+    ;
     println!("Result: {}", result.clone().unwrap());
 }
 
-fn test_php() {
+ fn test_php() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test PHP:");
     let mut script = vec![];
-    File::open("examples/programs/helloworld.php")
+    fs::File::open("examples/programs/helloworld.php")
+        
         .unwrap()
         .read_to_end(&mut script)
+        
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("PHP")),
-        None,
-        None,
-        vec![],
-    );
+        &RawCode::new(&script, compile_and_exe_settings.get_language("PHP").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
+    )
+    ;
     println!("Result: {}", result.clone().unwrap());
 }
 
-fn test_smalltalk() {
+ fn test_smalltalk() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Smalltalk:");
     let mut script = vec![];
-    File::open("examples/programs/helloworld.st")
+    fs::File::open("examples/programs/helloworld.st")
+        
         .unwrap()
         .read_to_end(&mut script)
+        
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Smalltalk")),
-        None,
-        None,
-        vec![],
-    );
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Smalltalk").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
+    )
+    ;
     println!("Result: {}", result.clone().unwrap());
 }
 
-fn test_ocaml() {
+ fn test_ocaml() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test OCaml:");
     let mut script = vec![];
-    File::open("examples/programs/helloworld.ml")
+    fs::File::open("examples/programs/helloworld.ml")
+        
         .unwrap()
         .read_to_end(&mut script)
+        
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("OCaml")),
-        None,
-        None,
-        vec![],
-    );
+        &RawCode::new(&script, compile_and_exe_settings.get_language("OCaml").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
+    )
+    ;
     println!("Result: {}", result.clone().unwrap());
 }
 
-fn test_cobol() {
+ fn test_cobol() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test COBOL:");
     let mut script = vec![];
-    File::open("examples/programs/helloworld.cob")
+    fs::File::open("examples/programs/helloworld.cob")
+        
         .unwrap()
         .read_to_end(&mut script)
+        
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("COBOL")),
-        None,
-        None,
-        vec![],
-    );
+        &RawCode::new(&script, compile_and_exe_settings.get_language("COBOL").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
+    )
+    ;
     println!("Result: {}", result.clone().unwrap());
 }
 
-fn test_ada() {
+ fn test_ada() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Ada:");
     let mut script = vec![];
-    File::open("examples/programs/helloworld.adb")
+    fs::File::open("examples/programs/helloworld.adb")
+        
         .unwrap()
         .read_to_end(&mut script)
+        
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Ada")),
-        None,
-        None,
-        vec![],
-    );
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Ada").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
+    )
+    ;
     println!("Result: {}", result.clone().unwrap());
 }
 
-fn test_common_lisp() {
+ fn test_common_lisp() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Common LISP:");
     let mut script = vec![];
-    File::open("examples/programs/helloworld.lisp")
+    fs::File::open("examples/programs/helloworld.lisp")
+        
         .unwrap()
         .read_to_end(&mut script)
+        
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Common LISP")),
-        None,
-        None,
-        vec![],
-    );
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Common LISP").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
+    )
+    ;
     println!("Result: {}", result.clone().unwrap());
 }
 
-fn test_scala() {
+ fn test_scala() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Scala:");
     let mut script = vec![];
-    File::open("examples/programs/helloworld.scala")
+    fs::File::open("examples/programs/helloworld.scala")
+        
         .unwrap()
         .read_to_end(&mut script)
+        
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Scala")),
-        None,
-        None,
-        vec![],
-    );
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Scala").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
+    )
+    ;
     println!("Result: {}", result.clone().unwrap());
 }
 
-fn test_tcl() {
+ fn test_tcl() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Tcl:");
     let mut script = vec![];
-    File::open("examples/programs/helloworld.tcl")
+    fs::File::open("examples/programs/helloworld.tcl")
+        
         .unwrap()
         .read_to_end(&mut script)
+        
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Tcl")),
-        None,
-        None,
-        vec![],
-    );
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Tcl").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
+    )
+    ;
     println!("Result: {}", result.clone().unwrap());
 }
 
-fn test_octave() {
+ fn test_octave() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Octave:");
     let mut script = vec![];
-    File::open("examples/programs/helloworld.oct")
+    fs::File::open("examples/programs/helloworld.oct")
+        
         .unwrap()
         .read_to_end(&mut script)
+        
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Octave")),
-        None,
-        None,
-        vec![],
-    );
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Octave").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
+    )
+    ;
     println!("Result: {}", result.clone().unwrap());
 }
 
-fn test_pypy2() {
+ fn test_pypy2() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Pypy 2:");
     let mut script = vec![];
-    File::open("examples/programs/helloworld.py2")
+    fs::File::open("examples/programs/helloworld.py2")
+        
         .unwrap()
         .read_to_end(&mut script)
+        
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Pypy 2")),
-        None,
-        None,
-        vec![],
-    );
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Pypy 2").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
+    )
+    ;
     println!("Result: {}", result.clone().unwrap());
 }

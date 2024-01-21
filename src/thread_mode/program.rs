@@ -1,9 +1,5 @@
-#![allow(non_snake_case)]
-use crate::quantity::{MemorySize, ProcessResource, TimeSpan};
-use crate::settings::{self, COMPILE_AND_EXE_SETTING, RUN_SETTING};
-use cgroups_rs::cgroup_builder::CgroupBuilder;
-use cgroups_rs::memory::MemController;
-use cgroups_rs::{Cgroup, CgroupPid};
+use crate::quantity::{MemorySize, ProcessResource, TimeSpan, TmpCgroup};
+use crate::settings::CompileAndExeSetting;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::{self, File};
@@ -12,63 +8,48 @@ use std::os::fd::FromRawFd;
 use std::os::unix::fs::PermissionsExt;
 use std::os::unix::process::CommandExt;
 use std::process::{Command, Stdio};
-use std::sync::mpsc::{self, Receiver};
+use std::sync::mpsc::{self};
 use std::thread;
 use std::time::{Duration, Instant};
 use tempfile::TempDir;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct RawCode {
-    script: Vec<u8>,
-    language: String,
+    code: Vec<u8>,
+    compile_and_exe_setting: CompileAndExeSetting,
 }
 
 #[cfg(target_os = "linux")]
 impl RawCode {
-    pub fn new(script: Vec<u8>, language: String) -> Self {
-        RawCode {
-            script: script,
-            language: language,
+    pub fn new(code: &Vec<u8>, compile_and_exe_setting: &CompileAndExeSetting) -> Self {
+        Self {
+            code: code.clone(),
+            compile_and_exe_setting: compile_and_exe_setting.clone(),
         }
     }
 
     pub fn compile(&self) -> Result<ExeCode, String> {
-        let compile_and_exe_script = match settings::COMPILE_AND_EXE_SETTING
-            .languages
-            .get(&self.language)
-        {
-            None => return Err(String::from("No Such Language")),
-            Some(result) => result,
-        };
-        let compile_command = match compile_and_exe_script.get(&String::from("compile_command")) {
-            None => {
-                let exe_code = match compile_and_exe_script.get(&String::from("exe_code")) {
-                    None => return Err(String::from("Setting Error")),
-                    Some(result) => result,
-                };
-                let mut exe_codes = HashMap::new();
-                exe_codes.insert(exe_code.clone(), self.script.clone());
-                return Ok(ExeCode {
-                    exe_codes: exe_codes,
-                    language: self.language.clone(),
-                });
+        if self.compile_and_exe_setting.compile_command.is_empty() {
+            if self.compile_and_exe_setting.exe_files.is_empty() || self.compile_and_exe_setting.exe_files.len() > 1 {
+                return Err(String::from("Setting Error"));
             }
-            Some(result) => result,
-        };
-        let raw_code = match compile_and_exe_script.get(&String::from("raw_code")) {
-            None => return Err(String::from("Setting Error")),
-            Some(result) => result,
-        };
+            let mut exe_files = HashMap::new();
+            exe_files.insert(self.compile_and_exe_setting.exe_files[0].clone(), self.code.clone());
+            return Ok(ExeCode {
+                exe_files: exe_files,
+                compile_and_exe_setting: self.compile_and_exe_setting.clone(),
+            });
+        }
         let id = uuid::Uuid::new_v4().simple().to_string();
         let compile_dir = TempDir::with_prefix(id.as_str()).unwrap();
-        let compile_command = compile_command.as_str();
-        let raw_code_path = format!("{}/{}", compile_dir.path().to_str().unwrap(), raw_code);
+        let compile_command = self.compile_and_exe_setting.compile_command.as_str();
+        let raw_code_path = format!("{}/{}", compile_dir.path().to_str().unwrap(), self.compile_and_exe_setting.raw_code);
         let raw_code_path = raw_code_path.as_str();
         let compile_command_path = format!("{}/compile.sh", compile_dir.path().to_str().unwrap());
         let compile_command_path = compile_command_path.as_str();
         File::create(raw_code_path)
             .unwrap()
-            .write_all(&self.script)
+            .write_all(&self.code)
             .unwrap();
         File::create(compile_command_path)
             .unwrap()
@@ -93,83 +74,63 @@ impl RawCode {
         if let Err(result) = p.stderr.take().unwrap().read_to_string(&mut stderr_output) {
             return Err(result.to_string());
         }
-        let mut exe_codes = HashMap::new();
-        for (key, value) in compile_and_exe_script {
-            if key.starts_with("exe_code") {
-                let mut exe_code_file = Vec::new();
-                let exe_code = value.clone();
-                let exe_code_path =
-                    format!("{}/{}", compile_dir.path().to_str().unwrap(), exe_code);
-                let exe_code_path = exe_code_path.as_str();
-                let _ = match File::open(exe_code_path) {
-                    Ok(mut result) => result.read_to_end(&mut exe_code_file),
-                    Err(result) => {
-                        return Err(stderr_output
-                            + "\n"
-                            + result
-                                .to_string()
-                                .replace(
-                                    format!("{}/", compile_dir.path().to_str().unwrap()).as_str(),
-                                    "",
-                                )
-                                .as_str());
-                    }
-                };
-                exe_codes.insert(exe_code, exe_code_file);
-            }
+        let mut exe_files = HashMap::new();
+        for exe_file in &self.compile_and_exe_setting.exe_files {
+            let mut exe_code_file = Vec::new();
+            let exe_code_path =
+                format!("{}/{}", compile_dir.path().to_str().unwrap(), exe_file);
+            let exe_code_path = exe_code_path.as_str();
+            let _ = match File::open(exe_code_path) {
+                Ok(mut result) => result.read_to_end(&mut exe_code_file),
+                Err(result) => {
+                    return Err(stderr_output
+                        + "\n"
+                        + result
+                            .to_string()
+                            .replace(
+                                format!("{}/", compile_dir.path().to_str().unwrap()).as_str(),
+                                "",
+                            )
+                            .as_str());
+                }
+            };
+            exe_files.insert(exe_file.clone(), exe_code_file);
         }
-        if exe_codes.is_empty() {
+        if exe_files.is_empty() {
             return Err(String::from("Setting Error"));
         }
         Ok(ExeCode {
-            exe_codes: exe_codes,
-            language: self.language.clone(),
+            exe_files: exe_files,
+            compile_and_exe_setting: self.compile_and_exe_setting.clone(),
         })
     }
 }
 
-struct ExeResources {
-    id: String,
+
+pub struct ExeResources {
     uid: u32,
     exe_dir: TempDir,
     time_limit: TimeSpan,
+    memory_limit: MemorySize,
     stdin_path: String,
     stdout_path: String,
     stderr_path: String,
     interactorin_path: String,
     interactorout_path: String,
-    cgroup: Cgroup,
-    oom_receiver: Receiver<String>,
 }
 
 #[cfg(target_os = "linux")]
 impl ExeResources {
     fn new(
-        exe_codes: HashMap<String, Vec<u8>>,
-        language: String,
-        time_limit: Option<TimeSpan>,
-        memory_limit: Option<MemorySize>,
+        uid: u32,
+        exe_files: &HashMap<String, Vec<u8>>,
+        compile_and_exe_setting: &CompileAndExeSetting,
+        time_limit: &TimeSpan,
+        memory_limit: &MemorySize,
     ) -> Result<Self, String> {
         if fs::read_to_string("/etc/sudoers").is_err() {
             return Err(String::from("Permission Denied"));
         }
-        if time_limit.is_some() && time_limit.unwrap() > RUN_SETTING.time_limit {
-            return Err(String::from("Exceed Maximum Time Limit"));
-        }
-        if memory_limit.is_some() && memory_limit.unwrap() > RUN_SETTING.memory_limit {
-            return Err(String::from("Exceed Maximum Memory Limit"));
-        }
-        let time_limit = time_limit.unwrap_or(RUN_SETTING.time_limit);
-        let memory_limit = memory_limit.unwrap_or(RUN_SETTING.memory_limit);
-
-        let compile_and_exe_script = match COMPILE_AND_EXE_SETTING.languages.get(&language) {
-            None => return Err(String::from("Setting Error")),
-            Some(result) => result,
-        };
-        let exe_command = match compile_and_exe_script.get(&String::from("exe_command")) {
-            None => return Err(String::from("Setting Error")),
-            Some(result) => result,
-        };
         let id = uuid::Uuid::new_v4().simple().to_string();
         let exe_dir = match TempDir::with_prefix(id.as_str()) {
             Err(result) => {
@@ -183,7 +144,6 @@ impl ExeResources {
             .clone()
             .to_string_lossy()
             .to_string();
-        let exe_command = exe_command.replace("exe_dir", exe_dir_path.as_str());
         let exe_command_path = format!("{}/exe.sh", exe_dir_path);
         let stdin_path = format!("{}/stdin", exe_dir_path);
         let stdout_path = format!("{}/stdout", exe_dir_path);
@@ -199,7 +159,7 @@ impl ExeResources {
             Err(result) => {
                 return Err(result.to_string());
             }
-            Ok(mut file) => match file.write_all(exe_command.as_bytes()) {
+            Ok(mut file) => match file.write_all(compile_and_exe_setting.exe_command.as_bytes()) {
                 Err(result) => {
                     return Err(result.to_string());
                 }
@@ -265,8 +225,8 @@ impl ExeResources {
             }
         }
 
-        for (exe_code, script) in &exe_codes {
-            let exe_code_path = format!("{}/{}", exe_dir_path, exe_code);
+        for (exe_file, script) in exe_files {
+            let exe_code_path = format!("{}/{}", exe_dir_path, exe_file);
             match File::create(exe_code_path.as_str()) {
                 Err(result) => {
                     return Err(result.to_string());
@@ -296,34 +256,8 @@ impl ExeResources {
             all_file_path_vec.push(exe_code_path.clone());
         }
         match Command::new("sudo")
-            .arg("adduser")
-            .arg("--disabled-password")
-            .arg("--gecos")
-            .arg("\"\"")
-            .arg("--force-badname")
-            .arg(id.clone())
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .spawn()
-        {
-            Err(result) => {
-                return Err(result.to_string());
-            }
-            Ok(mut p) => match p.wait() {
-                Err(result) => return Err(result.to_string()),
-                Ok(_) => {}
-            },
-        };
-
-        let uid = match users::get_user_by_name(&id.clone()) {
-            None => {
-                return Err(String::from("Create User Error"));
-            }
-            Some(result) => result.uid(),
-        };
-        match Command::new("sudo")
             .arg("chown")
-            .arg(format!("{}:{}", id, id))
+            .arg(format!("{}:{}", uid, uid))
             .args(&all_file_path_vec)
             .spawn()
         {
@@ -335,45 +269,17 @@ impl ExeResources {
                 Ok(_) => {}
             },
         };
-
-        let h = cgroups_rs::hierarchies::auto();
-        let cgroup = match CgroupBuilder::new(id.as_str())
-            .memory()
-            .memory_hard_limit(memory_limit.as_bytes() as i64)
-            .done()
-            .cpu()
-            .shares(100)
-            .done()
-            .build(h)
-        {
-            Err(result) => {
-                return Err(result.to_string());
-            }
-            Ok(result) => result,
-        };
-        let memory_controller: &MemController = cgroup.controller_of().unwrap();
-        let oom_receiver = match memory_controller.register_oom_event("oom") {
-            Err(result) => return Err(result.to_string()),
-            Ok(result) => result,
-        };
         Ok(Self {
-            id: id,
             uid: uid,
             exe_dir: exe_dir,
-            time_limit: time_limit,
+            time_limit: time_limit.clone(),
+            memory_limit: memory_limit.clone(),
             stdin_path: stdin_path,
             stdout_path: stdout_path,
             stderr_path: stderr_path,
-            cgroup: cgroup,
-            oom_receiver: oom_receiver,
             interactorin_path: interactorin_path,
             interactorout_path: interactorout_path,
         })
-    }
-
-    fn max_usage_in_bytes(&self) -> u64 {
-        let memory_controller: &MemController = self.cgroup.controller_of().unwrap();
-        memory_controller.memory_stat().max_usage_in_bytes
     }
 
     fn read_stdout(&self) -> Vec<u8> {
@@ -403,62 +309,21 @@ impl ExeResources {
         buf
     }
 
-    fn kill_processes(&mut self) {
-        for pid in self.cgroup.tasks() {
-            let _ = nix::sys::signal::kill(
-                nix::unistd::Pid::from_raw(pid.pid as i32),
-                nix::sys::signal::Signal::SIGKILL,
-            );
-        }
-    }
-}
-
-#[cfg(target_os = "linux")]
-impl Drop for ExeResources {
-    fn drop(&mut self) {
-        self.kill_processes();
-        let _ = self.cgroup.delete();
-        let _ = Command::new("sudo")
-            .arg("deluser")
-            .arg(self.id.clone())
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .spawn()
-            .unwrap()
-            .wait();
-    }
-}
-
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
-pub struct ExeCode {
-    exe_codes: HashMap<String, Vec<u8>>,
-    language: String,
-}
-
-#[cfg(target_os = "linux")]
-impl ExeCode {
     pub fn run_to_end(
-        &self,
-        input: Vec<u8>,
-        time_limit: Option<TimeSpan>,
-        memory_limit: Option<MemorySize>,
+        &mut self,
+        input: &Vec<u8>,
     ) -> Result<ProcessResource, (String, ProcessResource)> {
-        let mut exe_resources = match ExeResources::new(
-            self.exe_codes.clone(),
-            self.language.clone(),
-            time_limit,
-            memory_limit,
-        ) {
-            Ok(result) => result,
-            Err(result) => {
-                return Err((result, ProcessResource::default()));
-            }
-        };
-        match File::create(exe_resources.stdin_path.as_str()) {
+        let tmp_cgroup = match TmpCgroup::new(&self.memory_limit) {
             Err(result) => {
                 return Err((result.to_string(), ProcessResource::default()));
             }
-            Ok(mut file) => match file.write_all(&input) {
+            Ok(result) => result, 
+        };
+        match File::create(self.stdin_path.as_str()) {
+            Err(result) => {
+                return Err((result.to_string(), ProcessResource::default()));
+            }
+            Ok(mut file) => match file.write_all(input) {
                 Err(result) => {
                     return Err((result.to_string(), ProcessResource::default()));
                 }
@@ -466,15 +331,15 @@ impl ExeCode {
             },
         };
         let p = {
-            let stdin = match File::open(exe_resources.stdin_path.as_str()) {
+            let stdin = match File::open(self.stdin_path.as_str()) {
                 Err(result) => return Err((result.to_string(), ProcessResource::default())),
                 Ok(result) => result,
             };
-            let stdout = match File::create(exe_resources.stdout_path.as_str()) {
+            let stdout = match File::create(self.stdout_path.as_str()) {
                 Err(result) => return Err((result.to_string(), ProcessResource::default())),
                 Ok(result) => result,
             };
-            let stderr = match File::create(exe_resources.stderr_path.as_str()) {
+            let stderr = match File::create(self.stderr_path.as_str()) {
                 Err(result) => return Err((result.to_string(), ProcessResource::default())),
                 Ok(result) => result,
             };
@@ -482,8 +347,8 @@ impl ExeCode {
                 .stdin(stdin)
                 .stdout(stdout)
                 .stderr(stderr)
-                .current_dir(exe_resources.exe_dir.path())
-                .uid(exe_resources.uid)
+                .current_dir(self.exe_dir.path())
+                .uid(self.uid)
                 .spawn()
         };
         match p {
@@ -492,9 +357,8 @@ impl ExeCode {
             }
             Ok(mut p) => {
                 let start_time = Instant::now();
-                match exe_resources
-                    .cgroup
-                    .add_task(CgroupPid::from(p.id() as u64))
+                match tmp_cgroup
+                    .add_task(p.id() as u64)
                 {
                     Err(result) => {
                         let _ = p.kill();
@@ -519,42 +383,42 @@ impl ExeCode {
                         }
                     }
                 });
-                let result = receiver.recv_timeout(Duration::from(exe_resources.time_limit));
-                let memory = MemorySize::from_bytes(exe_resources.max_usage_in_bytes() as usize);
-                exe_resources.kill_processes();
+                let result = receiver.recv_timeout(Duration::from(self.time_limit));
+                let memory = MemorySize::from_bytes(tmp_cgroup.max_usage_in_bytes() as usize);
+                tmp_cgroup.kill_processes();
                 wait_handle.join().unwrap();
 
                 match result {
                     Ok(wait_result) => match wait_result {
                         Ok(runtime) => {
-                            if runtime > exe_resources.time_limit {
+                            if runtime > self.time_limit {
                                 return Err((
                                     String::from("Time Limit Exceed"),
                                     ProcessResource {
                                         memory: memory,
                                         runtime: runtime,
-                                        stdout: exe_resources.read_stdout(),
-                                        stderr: exe_resources.read_stderr(),
+                                        stdout: self.read_stdout(),
+                                        stderr: self.read_stderr(),
                                     },
                                 ));
                             } else {
                                 return Ok(ProcessResource {
                                     memory: memory,
                                     runtime: runtime,
-                                    stdout: exe_resources.read_stdout(),
-                                    stderr: exe_resources.read_stderr(),
+                                    stdout: self.read_stdout(),
+                                    stderr: self.read_stderr(),
                                 });
                             }
                         }
                         Err(runtime) => {
-                            if exe_resources.oom_receiver.try_recv().is_ok() {
+                            if tmp_cgroup.oom_receiver_try_recv().is_ok() {
                                 return Err((
                                     String::from("Memory Limit Exceed"),
                                     ProcessResource {
                                         memory: memory,
                                         runtime: runtime,
-                                        stdout: exe_resources.read_stdout(),
-                                        stderr: exe_resources.read_stderr(),
+                                        stdout: self.read_stdout(),
+                                        stderr: self.read_stderr(),
                                     },
                                 ));
                             } else {
@@ -563,8 +427,8 @@ impl ExeCode {
                                     ProcessResource {
                                         memory: memory,
                                         runtime: runtime,
-                                        stdout: exe_resources.read_stdout(),
-                                        stderr: exe_resources.read_stderr(),
+                                        stdout: self.read_stdout(),
+                                        stderr: self.read_stderr(),
                                     },
                                 ));
                             }
@@ -580,8 +444,8 @@ impl ExeCode {
                             ProcessResource {
                                 memory: memory,
                                 runtime: runtime,
-                                stdout: exe_resources.read_stdout(),
-                                stderr: exe_resources.read_stderr(),
+                                stdout: self.read_stdout(),
+                                stderr: self.read_stderr(),
                             },
                         ));
                     }
@@ -591,45 +455,34 @@ impl ExeCode {
     }
 
     pub fn run_with_interactor(
-        &self,
-        time_limit: Option<TimeSpan>,
-        memory_limit: Option<MemorySize>,
-        interactor: ExeCode,
-        interactor_extra_time_limit: Option<TimeSpan>,
-        interactor_memory_limit: Option<MemorySize>,
-        interactor_input: Vec<u8>,
+        &mut self,
+        interactor_exe_resources: &mut ExeResources,
+        interactor_input: &Vec<u8>,
     ) -> Result<(ProcessResource, ProcessResource), (String, ProcessResource, ProcessResource)>
     {
-        let mut exe_resources = match ExeResources::new(
-            self.exe_codes.clone(),
-            self.language.clone(),
-            time_limit,
-            memory_limit,
-        ) {
-            Ok(result) => result,
+        let tmp_cgroup = match TmpCgroup::new(&self.memory_limit) {
             Err(result) => {
                 return Err((
-                    result,
+                    result.to_string(),
                     ProcessResource::default(),
                     ProcessResource::default(),
                 ));
             }
+            Ok(result) => {result}
         };
-        let mut interactor_exe_resources = match ExeResources::new(
-            interactor.exe_codes.clone(),
-            interactor.language.clone(),
-            interactor_extra_time_limit,
-            interactor_memory_limit,
-        ) {
-            Ok(result) => result,
+
+        let interactor_tmp_cgroup = match TmpCgroup::new(&interactor_exe_resources.memory_limit) {
             Err(result) => {
                 return Err((
-                    result,
+                    result.to_string(),
                     ProcessResource::default(),
                     ProcessResource::default(),
                 ));
             }
+            Ok(result) => {result}
         };
+
+        
 
         let (pipe_to_interactor_read, pipe_to_interactor_write) = nix::unistd::pipe().unwrap();
 
@@ -686,9 +539,8 @@ impl ExeCode {
         };
 
         let interactor_start_time = Instant::now();
-        match interactor_exe_resources
-            .cgroup
-            .add_task(CgroupPid::from(interactor_p.id() as u64))
+        match interactor_tmp_cgroup
+            .add_task(interactor_p.id() as u64)
         {
             Err(result) => {
                 let _ = interactor_p.kill();
@@ -720,7 +572,7 @@ impl ExeCode {
         });
 
         let mut p = {
-            let stderr = match File::create(exe_resources.stderr_path.as_str()) {
+            let stderr = match File::create(self.stderr_path.as_str()) {
                 Err(result) => {
                     return Err((
                         result.to_string(),
@@ -734,8 +586,8 @@ impl ExeCode {
                 .stdin(unsafe { std::fs::File::from_raw_fd(pipe_from_interactor_read) })
                 .stdout(unsafe { std::fs::File::from_raw_fd(pipe_to_interactor_write) })
                 .stderr(stderr)
-                .uid(exe_resources.uid)
-                .current_dir(exe_resources.exe_dir.path())
+                .uid(self.uid)
+                .current_dir(self.exe_dir.path())
                 .spawn()
             {
                 Err(_) => {
@@ -750,9 +602,8 @@ impl ExeCode {
         };
         let start_time = Instant::now();
 
-        match exe_resources
-            .cgroup
-            .add_task(CgroupPid::from(p.id() as u64))
+        match tmp_cgroup
+            .add_task(p.id() as u64)
         {
             Err(result) => {
                 let _ = p.kill();
@@ -782,14 +633,14 @@ impl ExeCode {
                 }
             }
         });
-        let result = receiver.recv_timeout(Duration::from(exe_resources.time_limit));
-        exe_resources.kill_processes();
+        let result = receiver.recv_timeout(Duration::from(self.time_limit));
+        tmp_cgroup.kill_processes();
         let interactor_result =
             interactor_receiver.recv_timeout(Duration::from(interactor_exe_resources.time_limit));
-        interactor_exe_resources.kill_processes();
-        let memory = MemorySize::from_bytes(exe_resources.max_usage_in_bytes() as usize);
+        interactor_tmp_cgroup.kill_processes();
+        let memory = MemorySize::from_bytes(tmp_cgroup.max_usage_in_bytes() as usize);
         let interactor_memory =
-            MemorySize::from_bytes(interactor_exe_resources.max_usage_in_bytes() as usize);
+            MemorySize::from_bytes(interactor_tmp_cgroup.max_usage_in_bytes() as usize);
 
         wait_handle.join().unwrap();
         interactor_wait_handle.join().unwrap();
@@ -809,7 +660,7 @@ impl ExeCode {
                     };
                 }
                 Err(interactor_runtime) => {
-                    if interactor_exe_resources.oom_receiver.try_recv().is_ok() {
+                    if interactor_tmp_cgroup.oom_receiver_try_recv().is_ok() {
                         return_status = String::from("Interactor Memory Limit Exceed");
                         interactor_resource = ProcessResource {
                             memory: interactor_memory,
@@ -845,31 +696,31 @@ impl ExeCode {
         match result {
             Ok(wait_result) => match wait_result {
                 Ok(runtime) => {
-                    if runtime > exe_resources.time_limit {
+                    if runtime > self.time_limit {
                         return_status = String::from("Time Limit Exceed");
                         p_resource = ProcessResource {
                             memory: memory,
                             runtime: runtime,
                             stdout: vec![],
-                            stderr: exe_resources.read_stderr(),
+                            stderr: self.read_stderr(),
                         };
                     } else {
                         p_resource = ProcessResource {
                             memory: memory,
                             runtime: runtime,
                             stdout: vec![],
-                            stderr: exe_resources.read_stderr(),
+                            stderr: self.read_stderr(),
                         };
                     }
                 }
                 Err(runtime) => {
-                    if exe_resources.oom_receiver.try_recv().is_ok() {
+                    if tmp_cgroup.oom_receiver_try_recv().is_ok() {
                         return_status = String::from("Memory Limit Exceed");
                         p_resource = ProcessResource {
                             memory: memory,
                             runtime: runtime,
                             stdout: vec![],
-                            stderr: exe_resources.read_stderr(),
+                            stderr: self.read_stderr(),
                         };
                     } else {
                         return_status = String::from("Runtime Error");
@@ -877,7 +728,7 @@ impl ExeCode {
                             memory: memory,
                             runtime: runtime,
                             stdout: vec![],
-                            stderr: exe_resources.read_stderr(),
+                            stderr: self.read_stderr(),
                         };
                     }
                 }
@@ -892,7 +743,7 @@ impl ExeCode {
                     memory: memory,
                     runtime: runtime,
                     stdout: vec![],
-                    stderr: exe_resources.read_stderr(),
+                    stderr: self.read_stderr(),
                 };
             }
         }
@@ -901,5 +752,27 @@ impl ExeCode {
         } else {
             Err((return_status, p_resource, interactor_resource))
         }
+    }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct ExeCode {
+    exe_files: HashMap<String, Vec<u8>>,
+    compile_and_exe_setting: CompileAndExeSetting,
+}
+
+#[cfg(target_os = "linux")]
+impl ExeCode {
+    pub fn initial_exe_resources(&self,
+        time_limit: TimeSpan,
+        memory_limit: MemorySize,
+        uid: u32) -> Result<ExeResources, String> {
+        ExeResources::new(
+            uid,
+            &self.exe_files,
+            &self.compile_and_exe_setting,
+            &time_limit,
+            &memory_limit,
+        )
     }
 }

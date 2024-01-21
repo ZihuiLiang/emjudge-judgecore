@@ -1,6 +1,10 @@
+use cgroups_rs::cgroup_builder::CgroupBuilder;
+use cgroups_rs::memory::MemController;
+use cgroups_rs::{Cgroup, CgroupPid};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::ops::{Add, Sub};
+use std::sync::mpsc::{Receiver, TryRecvError};
 use std::time::Duration;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Default)]
@@ -332,5 +336,77 @@ impl fmt::Display for ProcessResource {
             "Runtime: {}, Memory: {}, Stdout: {}, Stderr: {}",
             self.runtime, self.memory, stdout_escaped, stderr_escaped
         )
+    }
+}
+
+
+pub struct TmpCgroup {
+    cgroup: Cgroup,
+    oom_receiver: Receiver<String>,
+}
+
+impl TmpCgroup {
+    pub fn new(memory_limit: &MemorySize) -> Result<Self, String> {
+        let id = uuid::Uuid::new_v4().to_string();
+        let h = cgroups_rs::hierarchies::auto();
+        let cgroup = match CgroupBuilder::new(id.as_str())
+        .memory()
+        .memory_hard_limit(memory_limit.as_bytes() as i64)
+        .done()
+        .cpu()
+        .shares(100)
+        .done().build(h)
+        {
+            Err(result) => {
+                return Err(result.to_string());
+            }
+            Ok(result) => result,
+        };
+        let memory_controller: &MemController = cgroup.controller_of().unwrap();
+        let oom_receiver = match memory_controller.register_oom_event("oom") {
+            Err(result) => return Err(result.to_string()),
+            Ok(result) => result,
+        };
+        Ok(TmpCgroup {
+            cgroup,
+            oom_receiver,
+        })
+    }
+
+    pub fn max_usage_in_bytes(&self) -> u64 {
+        let memory_controller: &MemController = self.cgroup.controller_of().unwrap();
+        memory_controller.memory_stat().max_usage_in_bytes
+    }
+
+    pub fn add_task(&self, pid: u64) -> Result<(), String> {
+        match self
+        .cgroup
+        .add_task(CgroupPid::from(pid))
+        {
+            Err(result) => {
+                Err(result.to_string())
+            }
+            Ok(_) => {Ok(())}
+        }
+    }
+
+    pub fn kill_processes(&self) {
+        for pid in self.cgroup.tasks() {
+            let _ = nix::sys::signal::kill(
+                nix::unistd::Pid::from_raw(pid.pid as i32),
+                nix::sys::signal::Signal::SIGKILL,
+            );
+        }
+    }
+
+    pub fn oom_receiver_try_recv(&self) -> Result<String, TryRecvError> {
+        self.oom_receiver.try_recv()
+    }
+}
+
+impl Drop for TmpCgroup {
+    fn drop(&mut self) {
+        self.kill_processes();
+        let _ = self.cgroup.delete();
     }
 }

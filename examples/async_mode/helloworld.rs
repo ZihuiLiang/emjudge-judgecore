@@ -1,4 +1,4 @@
-use emjudge_judgecore::async_mode::{program::RawCode, test::OnlyRun};
+use emjudge_judgecore::{async_mode::{program::RawCode, test::OnlyRun}, quantity::{MemorySize, TimeSpan}, settings::{create_a_tmp_user_return_uid, CompileAndExeSettings}};
 use tokio::io::AsyncReadExt;
 
 #[tokio::main(flavor = "current_thread")]
@@ -34,6 +34,11 @@ async fn main() {
 }
 
 async fn test_cpp() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test C++:");
     let mut script = vec![];
     tokio::fs::File::open("examples/programs/helloworld.cpp")
@@ -43,16 +48,22 @@ async fn test_cpp() {
         .await
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("C++")),
-        None,
-        None,
-        vec![],
+        &RawCode::new(&script, compile_and_exe_settings.get_language("C++").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
     )
     .await;
-    println!("Result: {}", result.clone().unwrap());
+    println!("Result: {}", result);
 }
 
 async fn test_c() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test C:");
     let mut script = vec![];
     tokio::fs::File::open("examples/programs/helloworld.c")
@@ -61,11 +72,23 @@ async fn test_c() {
         .read_to_end(&mut script)
         .await
         .unwrap();
-    let result = OnlyRun::single(RawCode::new(script, String::from("C")), None, None, vec![]).await;
-    println!("Result: {}", result.clone().unwrap());
+    let result = OnlyRun::single(
+        &RawCode::new(&script, compile_and_exe_settings.get_language("C").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
+    )
+    .await;
+    println!("Result: {}", result);
 }
 
 async fn test_java() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Java:");
     let mut script = vec![];
     tokio::fs::File::open("examples/programs/helloworld.java")
@@ -75,16 +98,22 @@ async fn test_java() {
         .await
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Java")),
-        None,
-        None,
-        vec![],
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Java").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
     )
     .await;
-    println!("Result: {}", result.clone().unwrap());
+    println!("Result: {}", result);
 }
 
 async fn test_python3() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Python 3:");
     let mut script = vec![];
     tokio::fs::File::open("examples/programs/helloworld.py3")
@@ -94,16 +123,22 @@ async fn test_python3() {
         .await
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Python 3")),
-        None,
-        None,
-        vec![],
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Python 3").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
     )
     .await;
-    println!("Result: {}", result.clone().unwrap());
+    println!("Result: {}", result);
 }
 
 async fn test_pypy3() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Pypy 3:");
     let mut script = vec![];
     tokio::fs::File::open("examples/programs/helloworld.py3")
@@ -113,16 +148,23 @@ async fn test_pypy3() {
         .await
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Pypy 3")),
-        None,
-        None,
-        vec![],
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Pypy 3").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
     )
     .await;
-    println!("Result: {}", result.clone().unwrap());
+    println!("Result: {}", result);
 }
 
 async fn test_python2() {
+
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Python 2:");
     let mut script = vec![];
     tokio::fs::File::open("examples/programs/helloworld.py2")
@@ -132,16 +174,23 @@ async fn test_python2() {
         .await
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Python 2")),
-        None,
-        None,
-        vec![],
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Python 2").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
     )
     .await;
-    println!("Result: {}", result.clone().unwrap());
+    println!("Result: {}", result);
 }
 
 async fn test_ruby() {
+
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Ruby:");
     let mut script = vec![];
     tokio::fs::File::open("examples/programs/helloworld.rb")
@@ -151,16 +200,22 @@ async fn test_ruby() {
         .await
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Ruby")),
-        None,
-        None,
-        vec![],
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Ruby").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
     )
     .await;
-    println!("Result: {}", result.clone().unwrap());
+    println!("Result: {}", result);
 }
 
 async fn test_perl() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Perl:");
     let mut script = vec![];
     tokio::fs::File::open("examples/programs/helloworld.pl")
@@ -170,16 +225,22 @@ async fn test_perl() {
         .await
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Perl")),
-        None,
-        None,
-        vec![],
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Perl").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
     )
     .await;
-    println!("Result: {}", result.clone().unwrap());
+    println!("Result: {}", result);
 }
 
 async fn test_cs() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test C#:");
     let mut script = vec![];
     tokio::fs::File::open("examples/programs/helloworld.cs")
@@ -188,12 +249,23 @@ async fn test_cs() {
         .read_to_end(&mut script)
         .await
         .unwrap();
-    let result =
-        OnlyRun::single(RawCode::new(script, String::from("C#")), None, None, vec![]).await;
-    println!("Result: {}", result.clone().unwrap());
+    let result = OnlyRun::single(
+        &RawCode::new(&script, compile_and_exe_settings.get_language("C#").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
+    )
+    .await;
+    println!("Result: {}", result);
 }
 
 async fn test_objective_c() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Objective-C:");
     let mut script = vec![];
     tokio::fs::File::open("examples/programs/helloworld.m")
@@ -203,16 +275,22 @@ async fn test_objective_c() {
         .await
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Objective-C")),
-        None,
-        None,
-        vec![],
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Objective-C").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
     )
     .await;
-    println!("Result: {}", result.clone().unwrap());
+    println!("Result: {}", result);
 }
 
 async fn test_swift() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Swift:");
     let mut script = vec![];
     tokio::fs::File::open("examples/programs/helloworld.swift")
@@ -222,16 +300,22 @@ async fn test_swift() {
         .await
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Swift")),
-        None,
-        None,
-        vec![],
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Swift").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
     )
     .await;
-    println!("Result: {}", result.clone().unwrap());
+    println!("Result: {}", result);
 }
 
 async fn test_go() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Go:");
     let mut script = vec![];
     tokio::fs::File::open("examples/programs/helloworld.go")
@@ -240,12 +324,23 @@ async fn test_go() {
         .read_to_end(&mut script)
         .await
         .unwrap();
-    let result =
-        OnlyRun::single(RawCode::new(script, String::from("Go")), None, None, vec![]).await;
-    println!("Result: {}", result.clone().unwrap());
+    let result = OnlyRun::single(
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Go").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
+    )
+    .await;
+    println!("Result: {}", result);
 }
 
 async fn test_javascript() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Javascript:");
     let mut script = vec![];
     tokio::fs::File::open("examples/programs/helloworld.js")
@@ -255,16 +350,22 @@ async fn test_javascript() {
         .await
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Javascript")),
-        None,
-        None,
-        vec![],
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Javascript").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
     )
     .await;
-    println!("Result: {}", result.clone().unwrap());
+    println!("Result: {}", result);
 }
 
 async fn test_rust() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Rust:");
     let mut script = vec![];
     tokio::fs::File::open("examples/programs/helloworld.rs")
@@ -274,16 +375,22 @@ async fn test_rust() {
         .await
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Rust")),
-        None,
-        None,
-        vec![],
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Rust").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
     )
     .await;
-    println!("Result: {}", result.clone().unwrap());
+    println!("Result: {}", result);
 }
 
 async fn test_kotlin() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Kotlin:");
     let mut script = vec![];
     tokio::fs::File::open("examples/programs/helloworld.kt")
@@ -293,16 +400,22 @@ async fn test_kotlin() {
         .await
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Kotlin")),
-        None,
-        None,
-        vec![],
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Kotlin").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
     )
     .await;
-    println!("Result: {}", result.clone().unwrap());
+    println!("Result: {}", result);
 }
 
 async fn test_julia() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Julia:");
     let mut script = vec![];
     tokio::fs::File::open("examples/programs/helloworld.jl")
@@ -312,16 +425,22 @@ async fn test_julia() {
         .await
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Julia")),
-        None,
-        None,
-        vec![],
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Julia").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
     )
     .await;
-    println!("Result: {}", result.clone().unwrap());
+    println!("Result: {}", result);
 }
 
 async fn test_fortran() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Fortran:");
     let mut script = vec![];
     tokio::fs::File::open("examples/programs/helloworld.f90")
@@ -331,16 +450,22 @@ async fn test_fortran() {
         .await
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Fortran")),
-        None,
-        None,
-        vec![],
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Fortran").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
     )
     .await;
-    println!("Result: {}", result.clone().unwrap());
+    println!("Result: {}", result);
 }
 
 async fn test_lua() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Lua:");
     let mut script = vec![];
     tokio::fs::File::open("examples/programs/helloworld.lua")
@@ -350,16 +475,22 @@ async fn test_lua() {
         .await
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Lua")),
-        None,
-        None,
-        vec![],
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Lua").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
     )
     .await;
-    println!("Result: {}", result.clone().unwrap());
+    println!("Result: {}", result);
 }
 
 async fn test_php() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test PHP:");
     let mut script = vec![];
     tokio::fs::File::open("examples/programs/helloworld.php")
@@ -369,16 +500,22 @@ async fn test_php() {
         .await
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("PHP")),
-        None,
-        None,
-        vec![],
+        &RawCode::new(&script, compile_and_exe_settings.get_language("PHP").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
     )
     .await;
-    println!("Result: {}", result.clone().unwrap());
+    println!("Result: {}", result);
 }
 
 async fn test_smalltalk() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Smalltalk:");
     let mut script = vec![];
     tokio::fs::File::open("examples/programs/helloworld.st")
@@ -388,16 +525,22 @@ async fn test_smalltalk() {
         .await
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Smalltalk")),
-        None,
-        None,
-        vec![],
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Smalltalk").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
     )
     .await;
-    println!("Result: {}", result.clone().unwrap());
+    println!("Result: {}", result);
 }
 
 async fn test_ocaml() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test OCaml:");
     let mut script = vec![];
     tokio::fs::File::open("examples/programs/helloworld.ml")
@@ -407,16 +550,22 @@ async fn test_ocaml() {
         .await
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("OCaml")),
-        None,
-        None,
-        vec![],
+        &RawCode::new(&script, compile_and_exe_settings.get_language("OCaml").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
     )
     .await;
-    println!("Result: {}", result.clone().unwrap());
+    println!("Result: {}", result);
 }
 
 async fn test_cobol() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test COBOL:");
     let mut script = vec![];
     tokio::fs::File::open("examples/programs/helloworld.cob")
@@ -426,16 +575,22 @@ async fn test_cobol() {
         .await
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("COBOL")),
-        None,
-        None,
-        vec![],
+        &RawCode::new(&script, compile_and_exe_settings.get_language("COBOL").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
     )
     .await;
-    println!("Result: {}", result.clone().unwrap());
+    println!("Result: {}", result);
 }
 
 async fn test_ada() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Ada:");
     let mut script = vec![];
     tokio::fs::File::open("examples/programs/helloworld.adb")
@@ -445,16 +600,22 @@ async fn test_ada() {
         .await
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Ada")),
-        None,
-        None,
-        vec![],
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Ada").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
     )
     .await;
-    println!("Result: {}", result.clone().unwrap());
+    println!("Result: {}", result);
 }
 
 async fn test_common_lisp() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Common LISP:");
     let mut script = vec![];
     tokio::fs::File::open("examples/programs/helloworld.lisp")
@@ -464,16 +625,22 @@ async fn test_common_lisp() {
         .await
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Common LISP")),
-        None,
-        None,
-        vec![],
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Common LISP").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
     )
     .await;
-    println!("Result: {}", result.clone().unwrap());
+    println!("Result: {}", result);
 }
 
 async fn test_scala() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Scala:");
     let mut script = vec![];
     tokio::fs::File::open("examples/programs/helloworld.scala")
@@ -483,16 +650,22 @@ async fn test_scala() {
         .await
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Scala")),
-        None,
-        None,
-        vec![],
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Scala").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
     )
     .await;
-    println!("Result: {}", result.clone().unwrap());
+    println!("Result: {}", result);
 }
 
 async fn test_tcl() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Tcl:");
     let mut script = vec![];
     tokio::fs::File::open("examples/programs/helloworld.tcl")
@@ -502,16 +675,22 @@ async fn test_tcl() {
         .await
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Tcl")),
-        None,
-        None,
-        vec![],
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Tcl").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
     )
     .await;
-    println!("Result: {}", result.clone().unwrap());
+    println!("Result: {}", result);
 }
 
 async fn test_octave() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Octave:");
     let mut script = vec![];
     tokio::fs::File::open("examples/programs/helloworld.oct")
@@ -521,16 +700,22 @@ async fn test_octave() {
         .await
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Octave")),
-        None,
-        None,
-        vec![],
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Octave").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
     )
     .await;
-    println!("Result: {}", result.clone().unwrap());
+    println!("Result: {}", result);
 }
 
 async fn test_pypy2() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     println!("Test Pypy 2:");
     let mut script = vec![];
     tokio::fs::File::open("examples/programs/helloworld.py2")
@@ -540,11 +725,12 @@ async fn test_pypy2() {
         .await
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("Pypy 2")),
-        None,
-        None,
-        vec![],
+        &RawCode::new(&script, compile_and_exe_settings.get_language("Pypy 2").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
     )
     .await;
-    println!("Result: {}", result.clone().unwrap());
+    println!("Result: {}", result);
 }

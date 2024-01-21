@@ -1,22 +1,30 @@
-use std::{fs::File, io::Read};
+use std::{fs, io::Read};
 
 use emjudge_judgecore::{
-    quantity::TimeSpan,
-    thread_mode::{program::RawCode, test::OnlyRun},
+    thread_mode::{program::RawCode, test::OnlyRun}, quantity::{MemorySize, TimeSpan}, settings::{create_a_tmp_user_return_uid, CompileAndExeSettings}
 };
 
 fn main() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     let mut script = vec![];
-    File::open("examples/programs/loop.cpp")
+    fs::File::open("examples/programs/loop.cpp")
+        
         .unwrap()
         .read_to_end(&mut script)
+        
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("C++")),
-        Some(TimeSpan::from_milliseconds(500)),
-        None,
-        vec![],
-    );
+        &RawCode::new(&script, compile_and_exe_settings.get_language("C++").unwrap()),
+        TimeSpan::from_milliseconds(500),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &vec![],
+    )
+    ;
     println!("Status of Tested Code: {}", result.clone().unwrap_err().0);
     println!("Result of Tested Code: {}", result.clone().unwrap_err().1);
 }

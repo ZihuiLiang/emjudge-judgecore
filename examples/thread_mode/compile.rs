@@ -1,29 +1,35 @@
-use std::{fs::File, io::Read};
+use std::{fs, io::Read};
 
-use emjudge_judgecore::thread_mode::program::RawCode;
+use emjudge_judgecore::{thread_mode::program::RawCode, settings::CompileAndExeSettings};
 
-fn main() {
-    let mut script = vec![];
-    File::open("examples/programs/compile_error.cpp")
+ fn main() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let mut code = vec![];
+    fs::File::open("examples/programs/compile_error.cpp")
+        
         .unwrap()
-        .read_to_end(&mut script)
+        .read_to_end(&mut code)
+        
         .unwrap();
     println!("Compiling examples/programs/compile_error.cpp in language C++...");
-    println!("{:?}", RawCode::new(script, String::from("C++")).compile());
+    println!(
+        "{:?}",
+        RawCode::new(&code, compile_and_exe_settings.get_language("C++").unwrap()).compile()
+    );
 
-    let mut script = vec![];
-    File::open("examples/programs/helloworld.cpp")
+    let mut code = vec![];
+    fs::File::open("examples/programs/helloworld.cpp")
+        
         .unwrap()
-        .read_to_end(&mut script)
+        .read_to_end(&mut code)
+        
         .unwrap();
     println!("Compiling examples/programs/helloworld.cpp in language C++...");
-    println!("{:?}", RawCode::new(script, String::from("C++")).compile());
-
-    let mut script = vec![];
-    File::open("examples/programs/helloworld.cpp")
-        .unwrap()
-        .read_to_end(&mut script)
-        .unwrap();
-    println!("Compiling examples/programs/helloworld.cpp in language D++...");
-    println!("{:?}", RawCode::new(script, String::from("D++")).compile());
+    println!(
+        "{:?}",
+        RawCode::new(&code,  compile_and_exe_settings.get_language("C++").unwrap()).compile()
+    );
 }

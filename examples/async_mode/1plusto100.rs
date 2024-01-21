@@ -1,8 +1,12 @@
-use emjudge_judgecore::async_mode::{program::RawCode, test::AnsAndEval};
+use emjudge_judgecore::{async_mode::{program::RawCode, test::AnsAndEval}, quantity::{MemorySize, TimeSpan}, settings::{create_a_tmp_user_return_uid, CompileAndExeSettings}};
 use tokio::io::AsyncReadExt;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
     let mut eval_script = vec![];
     let mut tested_ans = vec![];
     let mut std_ans = vec![];
@@ -25,14 +29,16 @@ async fn main() {
         .read_to_end(&mut std_ans)
         .await
         .unwrap();
-
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
+    
     let result = AnsAndEval::single(
-        RawCode::new(eval_script, String::from("C++")),
-        None,
-        None,
-        tested_ans,
-        std_ans,
+        &RawCode::new(&eval_script,  compile_and_exe_settings.get_language("C++").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_gigabytes(1),
+        code_uid,
+        &tested_ans,
+        &std_ans,
     )
     .await;
-    println!("Result of Evaluating Code: {}", result.clone().unwrap());
+    println!("Result: {}", result);
 }

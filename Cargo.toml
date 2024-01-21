@@ -1,6 +1,6 @@
 [package]
 name = "emjudge-judgecore"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2021"
 
 license = "MIT"
@@ -12,10 +12,14 @@ path = "src/lib.rs"
 
 [dependencies]
 config = "0.13.4"
-lazy_static = "1.4.0"
+json5 = "0.4.1"
 psutil = "3.3.0"
+ron = "0.8.1"
+rust-ini = "0.20.0"
 serde = "1.0.194"
+serde_json = "1.0.111"
 serde_with = "3.4.0"
+serde_yaml = "0.9.30"
 tempfile = "3.9.0"
 toml = "0.8.8"
 users = "0.11.0"
@@ -76,6 +80,12 @@ path = "examples/thread_mode/timelimit_exceed.rs"
 required-features = ["thread"]
 
 [[example]]
+name = "thread_multiple" 
+path = "examples/thread_mode/multiple.rs"
+required-features = ["thread"]
+
+
+[[example]]
 name = "async_1plusto100"
 path = "examples/async_mode/1plusto100.rs"
 required-features = ["async"]
@@ -113,4 +123,9 @@ required-features = ["async"]
 [[example]]
 name = "async_timelimit_exceed" 
 path = "examples/async_mode/timelimit_exceed.rs"
+required-features = ["async"]
+
+[[example]]
+name = "async_multiple" 
+path = "examples/async_mode/multiple.rs"
 required-features = ["async"]

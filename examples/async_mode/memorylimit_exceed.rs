@@ -1,11 +1,15 @@
 use emjudge_judgecore::{
-    async_mode::{program::RawCode, test::OnlyRun},
-    quantity::MemorySize,
+    async_mode::{program::RawCode, test::OnlyRun}, quantity::{MemorySize, TimeSpan}, settings::{create_a_tmp_user_return_uid, CompileAndExeSettings}
 };
 use tokio::io::AsyncReadExt;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
+    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(        
+        "examples/compile_and_exe_settings.toml",
+        config::FileFormat::Toml,
+    ).unwrap();
+    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
     let mut script = vec![];
     tokio::fs::File::open("examples/programs/mle.cpp")
         .await
@@ -14,12 +18,12 @@ async fn main() {
         .await
         .unwrap();
     let result = OnlyRun::single(
-        RawCode::new(script, String::from("C++")),
-        None,
-        Some(MemorySize::from_megabytes(1)),
-        vec![],
+        &RawCode::new(&script, compile_and_exe_settings.get_language("C++").unwrap()),
+        TimeSpan::from_seconds(1),
+        MemorySize::from_megabytes(1),
+        code_uid,
+        &vec![],
     )
     .await;
-    println!("Status of Tested Code: {}", result.clone().unwrap_err().0);
-    println!("Result of Tested Code: {}", result.clone().unwrap_err().1);
+    println!("Result: {}", result);
 }

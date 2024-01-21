@@ -1,73 +1,52 @@
-#![allow(non_snake_case)]
-use crate::quantity::{MemorySize, ProcessResource, TimeSpan};
-use crate::settings::{self, COMPILE_AND_EXE_SETTING, RUN_SETTING};
-use cgroups_rs::cgroup_builder::CgroupBuilder;
-use cgroups_rs::memory::MemController;
-use cgroups_rs::{Cgroup, CgroupPid};
+use crate::quantity::{MemorySize, ProcessResource, TimeSpan, TmpCgroup};
+use crate::result::{CompileResult, InitExeResourceResult, RunToEndResult, RunWithInteractorResult};
+use crate::settings::CompileAndExeSetting;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::os::fd::FromRawFd;
 use std::os::unix::fs::PermissionsExt;
 use std::process::Stdio;
-use std::sync::mpsc::Receiver;
 use std::time::Duration;
 use tempfile::TempDir;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::time::Instant;
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Debug)]
 pub struct RawCode {
-    script: Vec<u8>,
-    language: String,
+    code: Vec<u8>,
+    compile_and_exe_setting: CompileAndExeSetting,
 }
 
-#[cfg(target_os = "linux")]
 impl RawCode {
-    pub fn new(script: Vec<u8>, language: String) -> Self {
-        RawCode {
-            script: script,
-            language: language,
+    pub fn new(code: &Vec<u8>, compile_and_exe_setting: &CompileAndExeSetting) -> Self {
+        Self {
+            code: code.clone(),
+            compile_and_exe_setting: compile_and_exe_setting.clone(),
         }
     }
-
-    pub async fn compile(&self) -> Result<ExeCode, String> {
-        let compile_and_exe_script = match settings::COMPILE_AND_EXE_SETTING
-            .languages
-            .get(&self.language)
-        {
-            None => return Err(String::from("No Such Language")),
-            Some(result) => result,
-        };
-        let compile_command = match compile_and_exe_script.get(&String::from("compile_command")) {
-            None => {
-                let exe_code = match compile_and_exe_script.get(&String::from("exe_code")) {
-                    None => return Err(String::from("Setting Error")),
-                    Some(result) => result,
-                };
-                let mut exe_codes = HashMap::new();
-                exe_codes.insert(exe_code.clone(), self.script.clone());
-                return Ok(ExeCode {
-                    exe_codes: exe_codes,
-                    language: self.language.clone(),
-                });
+    pub async fn compile(&self) -> CompileResult{
+        if self.compile_and_exe_setting.compile_command.is_empty() {
+            if self.compile_and_exe_setting.exe_files.is_empty() || self.compile_and_exe_setting.exe_files.len() > 1 {
+                return CompileResult::SettingError;
             }
-            Some(result) => result,
-        };
-        let raw_code = match compile_and_exe_script.get(&String::from("raw_code")) {
-            None => return Err(String::from("Setting Error")),
-            Some(result) => result,
-        };
+            let mut exe_files = HashMap::new();
+            exe_files.insert(self.compile_and_exe_setting.exe_files[0].clone(), self.code.clone());
+            return CompileResult::Ok(ExeCode {
+                exe_files: exe_files,
+                compile_and_exe_setting: self.compile_and_exe_setting.clone(),
+            });
+        }
         let id = uuid::Uuid::new_v4().simple().to_string();
         let compile_dir = TempDir::with_prefix(id.as_str()).unwrap();
-        let compile_command = compile_command.as_str();
-        let raw_code_path = format!("{}/{}", compile_dir.path().to_str().unwrap(), raw_code);
+        let compile_command = self.compile_and_exe_setting.compile_command.as_str();
+        let raw_code_path = format!("{}/{}", compile_dir.path().to_str().unwrap(), self.compile_and_exe_setting.raw_code);
         let raw_code_path = raw_code_path.as_str();
         let compile_command_path = format!("{}/compile.sh", compile_dir.path().to_str().unwrap());
         let compile_command_path = compile_command_path.as_str();
         tokio::fs::File::create(raw_code_path)
             .await
             .unwrap()
-            .write_all(&self.script)
+            .write_all(&self.code)
             .await
             .unwrap();
         tokio::fs::File::create(compile_command_path)
@@ -90,11 +69,11 @@ impl RawCode {
             .current_dir(compile_dir.path().to_str().unwrap())
             .spawn();
         let mut p = match p {
-            Err(result) => return Err(result.to_string()),
+            Err(result) => return CompileResult::InternalError(result.to_string()),
             Ok(result) => result,
         };
         if let Err(result) = p.wait().await {
-            return Err(result.to_string());
+            return CompileResult::InternalError(result.to_string())
         }
         let mut stderr_output = String::new();
         if let Err(result) = p
@@ -104,89 +83,69 @@ impl RawCode {
             .read_to_string(&mut stderr_output)
             .await
         {
-            return Err(result.to_string());
+            return CompileResult::InternalError(result.to_string())
         }
-        let mut exe_codes = HashMap::new();
-        for (key, value) in compile_and_exe_script {
-            if key.starts_with("exe_code") {
-                let mut exe_code_file = Vec::new();
-                let exe_code = value.clone();
-                let exe_code_path =
-                    format!("{}/{}", compile_dir.path().to_str().unwrap(), exe_code);
-                let exe_code_path = exe_code_path.as_str();
-                let _ = match tokio::fs::File::open(exe_code_path).await {
-                    Ok(mut result) => result.read_to_end(&mut exe_code_file).await,
-                    Err(result) => {
-                        return Err(stderr_output
-                            + "\n"
-                            + result
-                                .to_string()
-                                .replace(
-                                    format!("{}/", compile_dir.path().to_str().unwrap()).as_str(),
-                                    "",
-                                )
-                                .as_str());
+        let mut exe_files = HashMap::new();
+        for exe_file in &self.compile_and_exe_setting.exe_files {
+            let mut exe_code_file = Vec::new();
+            let exe_code_path =
+                format!("{}/{}", compile_dir.path().to_str().unwrap(), exe_file);
+            let exe_code_path = exe_code_path.as_str();
+            let _ = match tokio::fs::File::open(exe_code_path).await {
+                Ok(mut result) => result.read_to_end(&mut exe_code_file).await,
+                Err(result) => {
+                    match result.kind() {
+                        std::io::ErrorKind::NotFound => {
+                            return CompileResult::CompileError(stderr_output);
+                        }
+                        _ => {
+                            return CompileResult::InternalError(result.to_string());
+                        }
                     }
-                };
-                exe_codes.insert(exe_code, exe_code_file);
-            }
+                }
+            };
+            exe_files.insert(exe_file.clone(), exe_code_file);
         }
-        if exe_codes.is_empty() {
-            return Err(String::from("Setting Error"));
+        if exe_files.is_empty() {
+            return CompileResult::SettingError;
         }
-        Ok(ExeCode {
-            exe_codes: exe_codes,
-            language: self.language.clone(),
+        CompileResult::Ok(ExeCode {
+            exe_files: exe_files,
+            compile_and_exe_setting: self.compile_and_exe_setting.clone(),
         })
     }
 }
 
-struct ExeResources {
-    id: String,
+
+#[derive(Debug)]
+pub struct ExeResources {
     uid: u32,
     exe_dir: TempDir,
     time_limit: TimeSpan,
+    memory_limit: MemorySize,
     stdin_path: String,
     stdout_path: String,
     stderr_path: String,
     interactorin_path: String,
     interactorout_path: String,
-    cgroup: Cgroup,
-    oom_receiver: Receiver<String>,
 }
 
 #[cfg(target_os = "linux")]
 impl ExeResources {
     async fn new(
-        exe_codes: HashMap<String, Vec<u8>>,
-        language: String,
-        time_limit: Option<TimeSpan>,
-        memory_limit: Option<MemorySize>,
-    ) -> Result<Self, String> {
+        uid: u32,
+        exe_files: &HashMap<String, Vec<u8>>,
+        compile_and_exe_setting: &CompileAndExeSetting,
+        time_limit: &TimeSpan,
+        memory_limit: &MemorySize,
+    ) -> InitExeResourceResult {
         if tokio::fs::read_to_string("/etc/sudoers").await.is_err() {
-            return Err(String::from("Permission Denied"));
+            return InitExeResourceResult::PermissionDenied;
         }
-        if time_limit.is_some() && time_limit.unwrap() > RUN_SETTING.time_limit {
-            return Err(String::from("Exceed Maximum Time Limit"));
-        }
-        if memory_limit.is_some() && memory_limit.unwrap() > RUN_SETTING.memory_limit {
-            return Err(String::from("Exceed Maximum Memory Limit"));
-        }
-        let time_limit = time_limit.unwrap_or(RUN_SETTING.time_limit);
-        let memory_limit = memory_limit.unwrap_or(RUN_SETTING.memory_limit);
-
-        let compile_and_exe_script = match COMPILE_AND_EXE_SETTING.languages.get(&language) {
-            None => return Err(String::from("Setting Error")),
-            Some(result) => result,
-        };
-        let exe_command = match compile_and_exe_script.get(&String::from("exe_command")) {
-            None => return Err(String::from("Setting Error")),
-            Some(result) => result,
-        };
         let id = uuid::Uuid::new_v4().simple().to_string();
         let exe_dir = match TempDir::with_prefix(id.as_str()) {
             Err(result) => {
-                return Err(result.to_string());
+                return InitExeResourceResult::InternalError(result.to_string());
             }
             Ok(result) => result,
         };
@@ -196,7 +155,6 @@ impl ExeResources {
             .clone()
             .to_string_lossy()
             .to_string();
-        let exe_command = exe_command.replace("exe_dir", exe_dir_path.as_str());
         let exe_command_path = format!("{}/exe.sh", exe_dir_path);
         let stdin_path = format!("{}/stdin", exe_dir_path);
         let stdout_path = format!("{}/stdout", exe_dir_path);
@@ -210,25 +168,25 @@ impl ExeResources {
         ];
         match tokio::fs::File::create(exe_command_path.as_str()).await {
             Err(result) => {
-                return Err(result.to_string());
+                return InitExeResourceResult::InternalError(result.to_string());
             }
-            Ok(mut file) => match file.write_all(exe_command.as_bytes()).await {
+            Ok(mut file) => match file.write_all(compile_and_exe_setting.exe_command.as_bytes()).await {
                 Err(result) => {
-                    return Err(result.to_string());
+                    return InitExeResourceResult::InternalError(result.to_string());
                 }
                 Ok(_) => {}
             },
         };
         match tokio::fs::metadata(exe_command_path.as_str()).await {
             Err(result) => {
-                return Err(result.to_string());
+                return InitExeResourceResult::InternalError(result.to_string());
             }
             Ok(metadata) => {
                 let mut permissions = metadata.permissions();
                 permissions.set_mode(0o500);
                 match tokio::fs::set_permissions(&exe_command_path, permissions.clone()).await {
                     Err(result) => {
-                        return Err(result.to_string());
+                        return InitExeResourceResult::InternalError(result.to_string());
                     }
                     Ok(_) => {}
                 }
@@ -236,20 +194,20 @@ impl ExeResources {
         }
         match tokio::fs::File::create(interactorin_path.as_str()).await {
             Err(result) => {
-                return Err(result.to_string());
+                return InitExeResourceResult::InternalError(result.to_string());
             }
             Ok(_) => {}
         };
         match tokio::fs::metadata(interactorin_path.as_str()).await {
             Err(result) => {
-                return Err(result.to_string());
+                return InitExeResourceResult::InternalError(result.to_string());
             }
             Ok(metadata) => {
                 let mut permissions = metadata.permissions();
                 permissions.set_mode(0o700);
                 match tokio::fs::set_permissions(&interactorin_path, permissions.clone()).await {
                     Err(result) => {
-                        return Err(result.to_string());
+                        return InitExeResourceResult::InternalError(result.to_string());
                     }
                     Ok(_) => {}
                 }
@@ -258,49 +216,49 @@ impl ExeResources {
 
         match tokio::fs::File::create(interactorout_path.as_str()).await {
             Err(result) => {
-                return Err(result.to_string());
+                return InitExeResourceResult::InternalError(result.to_string());
             }
             Ok(_) => {}
         };
         match tokio::fs::metadata(interactorout_path.as_str()).await {
             Err(result) => {
-                return Err(result.to_string());
+                return InitExeResourceResult::InternalError(result.to_string());
             }
             Ok(metadata) => {
                 let mut permissions = metadata.permissions();
                 permissions.set_mode(0o700);
                 match tokio::fs::set_permissions(&interactorout_path, permissions.clone()).await {
                     Err(result) => {
-                        return Err(result.to_string());
+                        return InitExeResourceResult::InternalError(result.to_string());
                     }
                     Ok(_) => {}
                 }
             }
         }
 
-        for (exe_code, script) in &exe_codes {
-            let exe_code_path = format!("{}/{}", exe_dir_path, exe_code);
+        for (exe_file, script) in exe_files {
+            let exe_code_path = format!("{}/{}", exe_dir_path, exe_file);
             match tokio::fs::File::create(exe_code_path.as_str()).await {
                 Err(result) => {
-                    return Err(result.to_string());
+                    return InitExeResourceResult::InternalError(result.to_string());
                 }
                 Ok(mut file) => match file.write_all(script).await {
                     Err(result) => {
-                        return Err(result.to_string());
+                        return InitExeResourceResult::InternalError(result.to_string());
                     }
                     Ok(_) => {}
                 },
             };
             match tokio::fs::metadata(exe_code_path.as_str()).await {
                 Err(result) => {
-                    return Err(result.to_string());
+                    return InitExeResourceResult::InternalError(result.to_string());
                 }
                 Ok(metadata) => {
                     let mut permissions = metadata.permissions();
                     permissions.set_mode(0o500);
                     match tokio::fs::set_permissions(&exe_code_path, permissions.clone()).await {
                         Err(result) => {
-                            return Err(result.to_string());
+                            return InitExeResourceResult::InternalError(result.to_string());
                         }
                         Ok(_) => {}
                     }
@@ -309,84 +267,32 @@ impl ExeResources {
             all_file_path_vec.push(exe_code_path.clone());
         }
         match tokio::process::Command::new("sudo")
-            .arg("adduser")
-            .arg("--disabled-password")
-            .arg("--gecos")
-            .arg("\"\"")
-            .arg("--force-badname")
-            .arg(id.clone())
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .spawn()
-        {
-            Err(result) => {
-                return Err(result.to_string());
-            }
-            Ok(mut p) => match p.wait().await {
-                Err(result) => return Err(result.to_string()),
-                Ok(_) => {}
-            },
-        };
-
-        let uid = match users::get_user_by_name(&id.clone()) {
-            None => {
-                return Err(String::from("Create User Error"));
-            }
-            Some(result) => result.uid(),
-        };
-        match tokio::process::Command::new("sudo")
             .arg("chown")
-            .arg(format!("{}:{}", id, id))
+            .arg(format!("{}:{}", uid, uid))
             .args(&all_file_path_vec)
             .spawn()
         {
             Err(result) => {
-                return Err(result.to_string());
+                return InitExeResourceResult::InternalError(result.to_string());
             }
             Ok(mut p) => match p.wait().await {
-                Err(result) => return Err(result.to_string()),
+                Err(result) => return InitExeResourceResult::InternalError(result.to_string()),
                 Ok(_) => {}
             },
         };
 
-        let h = cgroups_rs::hierarchies::auto();
-        let cgroup = match CgroupBuilder::new(id.as_str())
-            .memory()
-            .memory_hard_limit(memory_limit.as_bytes() as i64)
-            .done()
-            .cpu()
-            .shares(100)
-            .done()
-            .build(h)
-        {
-            Err(result) => {
-                return Err(result.to_string());
-            }
-            Ok(result) => result,
-        };
-        let memory_controller: &MemController = cgroup.controller_of().unwrap();
-        let oom_receiver = match memory_controller.register_oom_event("oom") {
-            Err(result) => return Err(result.to_string()),
-            Ok(result) => result,
-        };
-        Ok(Self {
-            id: id,
+        
+        InitExeResourceResult::Ok(Self {
             uid: uid,
             exe_dir: exe_dir,
-            time_limit: time_limit,
+            time_limit: time_limit.clone(),
+            memory_limit: memory_limit.clone(),
             stdin_path: stdin_path,
             stdout_path: stdout_path,
             stderr_path: stderr_path,
-            cgroup: cgroup,
-            oom_receiver: oom_receiver,
             interactorin_path: interactorin_path,
             interactorout_path: interactorout_path,
         })
-    }
-
-    fn max_usage_in_bytes(&self) -> u64 {
-        let memory_controller: &MemController = self.cgroup.controller_of().unwrap();
-        memory_controller.memory_stat().max_usage_in_bytes
     }
 
     async fn read_stdout(&self) -> Vec<u8> {
@@ -422,201 +328,125 @@ impl ExeResources {
         buf
     }
 
-    fn kill_processes(&mut self) {
-        for pid in self.cgroup.tasks() {
-            let _ = nix::sys::signal::kill(
-                nix::unistd::Pid::from_raw(pid.pid as i32),
-                nix::sys::signal::Signal::SIGKILL,
-            );
-        }
-    }
-}
-
-#[cfg(target_os = "linux")]
-impl Drop for ExeResources {
-    fn drop(&mut self) {
-        self.kill_processes();
-        let _ = self.cgroup.delete();
-        let _ = std::process::Command::new("sudo")
-            .arg("deluser")
-            .arg(self.id.clone())
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .spawn()
-            .unwrap()
-            .wait();
-    }
-}
-
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
-pub struct ExeCode {
-    exe_codes: HashMap<String, Vec<u8>>,
-    language: String,
-}
-
-#[cfg(target_os = "linux")]
-impl ExeCode {
     pub async fn run_to_end(
-        &self,
-        input: Vec<u8>,
-        time_limit: Option<TimeSpan>,
-        memory_limit: Option<MemorySize>,
-    ) -> Result<ProcessResource, (String, ProcessResource)> {
-        let mut exe_resources = match ExeResources::new(
-            self.exe_codes.clone(),
-            self.language.clone(),
-            time_limit,
-            memory_limit,
-        )
-        .await
-        {
-            Ok(result) => result,
+        &mut self,
+        input: &Vec<u8>,
+    ) -> RunToEndResult {
+        let tmp_cgroup = match TmpCgroup::new(&self.memory_limit) {
             Err(result) => {
-                return Err((result, ProcessResource::default()));
+                return RunToEndResult::InternalError(result.to_string());
             }
+            Ok(result) => result, 
         };
-        match tokio::fs::File::create(exe_resources.stdin_path.as_str()).await {
+        match tokio::fs::File::create(self.stdin_path.as_str()).await {
             Err(result) => {
-                return Err((result.to_string(), ProcessResource::default()));
+                return RunToEndResult::InternalError(result.to_string());
             }
-            Ok(mut file) => match file.write_all(&input).await {
+            Ok(mut file) => match file.write_all(input).await {
                 Err(result) => {
-                    return Err((result.to_string(), ProcessResource::default()));
+                    return RunToEndResult::InternalError(result.to_string());
                 }
                 Ok(_) => {}
             },
         };
         let p = {
-            let stdin = match std::fs::File::open(exe_resources.stdin_path.as_str()) {
-                Err(result) => return Err((result.to_string(), ProcessResource::default())),
+            let stdin = match std::fs::File::open(self.stdin_path.as_str()) {
+                Err(result) => return RunToEndResult::InternalError(result.to_string()),
                 Ok(result) => result,
             };
-            let stdout = match std::fs::File::create(exe_resources.stdout_path.as_str()) {
-                Err(result) => return Err((result.to_string(), ProcessResource::default())),
+            let stdout = match std::fs::File::create(self.stdout_path.as_str()) {
+                Err(result) => return RunToEndResult::InternalError(result.to_string()),
                 Ok(result) => result,
             };
-            let stderr = match std::fs::File::create(exe_resources.stderr_path.as_str()) {
-                Err(result) => return Err((result.to_string(), ProcessResource::default())),
+            let stderr = match std::fs::File::create(self.stderr_path.as_str()) {
+                Err(result) => return RunToEndResult::InternalError(result.to_string()),
                 Ok(result) => result,
             };
             tokio::process::Command::new("./exe.sh")
                 .stdin(stdin)
                 .stdout(stdout)
                 .stderr(stderr)
-                .current_dir(exe_resources.exe_dir.path())
-                .uid(exe_resources.uid)
+                .current_dir(self.exe_dir.path())
+                .uid(self.uid)
                 .spawn()
         };
         match p {
-            Err(_) => {
-                return Err((String::from("Runtime Error"), ProcessResource::default()));
+            Err(result) => {
+                return RunToEndResult::InternalError(result.to_string());
             }
             Ok(mut p) => {
                 let start_time = Instant::now();
-                match exe_resources
-                    .cgroup
-                    .add_task(CgroupPid::from(p.id().unwrap() as u64))
+                match tmp_cgroup
+                    .add_task(p.id().unwrap() as u64)
                 {
                     Err(result) => {
                         let _ = p.kill();
-                        return Err((result.to_string(), ProcessResource::default()));
+                        return RunToEndResult::InternalError(result.to_string());
                     }
                     Ok(_) => {}
                 }
                 let result =
-                    tokio::time::timeout(Duration::from(exe_resources.time_limit), p.wait()).await;
+                    tokio::time::timeout(Duration::from(self.time_limit), p.wait()).await;
                 let runtime = TimeSpan::from(start_time.elapsed());
-                let memory = MemorySize::from_bytes(exe_resources.max_usage_in_bytes() as usize);
-                exe_resources.kill_processes();
-                if exe_resources.oom_receiver.try_recv().is_ok() {
-                    return Err((
-                        String::from("Memory Limit Exceed"),
-                        ProcessResource {
-                            memory: memory,
-                            runtime: runtime,
-                            stdout: exe_resources.read_stdout().await,
-                            stderr: exe_resources.read_stderr().await,
-                        },
-                    ));
+                let memory = MemorySize::from_bytes(tmp_cgroup.max_usage_in_bytes() as usize);
+                tmp_cgroup.kill_processes();
+                if tmp_cgroup.oom_receiver_try_recv().is_ok() {
+                    return RunToEndResult::MemoryLimitExceeded(ProcessResource {
+                        memory: memory,
+                        runtime: runtime,
+                        stdout: self.read_stdout().await,
+                        stderr: self.read_stderr().await,
+                    });
                 }
-                let in_time_result = if result.is_err() || runtime > exe_resources.time_limit {
-                    return Err((
-                        String::from("Time Limit Exceed"),
-                        ProcessResource {
-                            memory: memory,
-                            runtime: runtime,
-                            stdout: exe_resources.read_stdout().await,
-                            stderr: exe_resources.read_stderr().await,
-                        },
-                    ));
+                let in_time_result = if result.is_err() || runtime > self.time_limit {
+                    return RunToEndResult::TimeLimitExceeded(ProcessResource {
+                        memory: memory,
+                        runtime: runtime,
+                        stdout: self.read_stdout().await,
+                        stderr: self.read_stderr().await,
+                    });
                 } else {
                     result.unwrap()
                 };
                 if in_time_result.is_ok_and(|status| status.success()) {
-                    Ok(ProcessResource {
+                    RunToEndResult::Ok(ProcessResource {
                         memory: memory,
                         runtime: runtime,
-                        stdout: exe_resources.read_stdout().await,
-                        stderr: exe_resources.read_stderr().await,
+                        stdout: self.read_stdout().await,
+                        stderr: self.read_stderr().await,
                     })
                 } else {
-                    Err((
-                        String::from("Runtime Error"),
+                    RunToEndResult::RuntimeError(
                         ProcessResource {
                             memory: memory,
                             runtime: runtime,
-                            stdout: exe_resources.read_stdout().await,
-                            stderr: exe_resources.read_stderr().await,
+                            stdout: self.read_stdout().await,
+                            stderr: self.read_stderr().await,
                         },
-                    ))
+                    )
                 }
             }
         }
     }
 
     pub async fn run_with_interactor(
-        &self,
-        time_limit: Option<TimeSpan>,
-        memory_limit: Option<MemorySize>,
-        interactor: ExeCode,
-        interactor_extra_time_limit: Option<TimeSpan>,
-        interactor_memory_limit: Option<MemorySize>,
-        interactor_input: Vec<u8>,
-    ) -> Result<(ProcessResource, ProcessResource), (String, ProcessResource, ProcessResource)>
+        &mut self,
+        interactor_exe_resources: &mut ExeResources,
+        interactor_input: &Vec<u8>,
+    ) -> RunWithInteractorResult
     {
-        let mut exe_resources = match ExeResources::new(
-            self.exe_codes.clone(),
-            self.language.clone(),
-            time_limit,
-            memory_limit,
-        )
-        .await
-        {
-            Ok(result) => result,
+        let tmp_cgroup = match TmpCgroup::new(&self.memory_limit) {
             Err(result) => {
-                return Err((
-                    result,
-                    ProcessResource::default(),
-                    ProcessResource::default(),
-                ));
+                return RunWithInteractorResult::InternalError(result.to_string());
             }
+            Ok(result) => {result}
         };
-        let mut interactor_exe_resources = match ExeResources::new(
-            interactor.exe_codes.clone(),
-            interactor.language.clone(),
-            interactor_extra_time_limit,
-            interactor_memory_limit,
-        )
-        .await
-        {
-            Ok(result) => result,
+
+        let interactor_tmp_cgroup = match TmpCgroup::new(&interactor_exe_resources.memory_limit) {
             Err(result) => {
-                return Err((
-                    result,
-                    ProcessResource::default(),
-                    ProcessResource::default(),
-                ));
+                return RunWithInteractorResult::InternalError(result.to_string());
             }
+            Ok(result) => {result}
         };
 
         let (pipe_to_interactor_read, pipe_to_interactor_write) = nix::unistd::pipe().unwrap();
@@ -625,19 +455,11 @@ impl ExeCode {
 
         match tokio::fs::File::create(interactor_exe_resources.interactorin_path.as_str()).await {
             Err(result) => {
-                return Err((
-                    result.to_string(),
-                    ProcessResource::default(),
-                    ProcessResource::default(),
-                ));
+                return RunWithInteractorResult::InternalError(result.to_string());
             }
-            Ok(mut file) => match file.write_all(&interactor_input).await {
+            Ok(mut file) => match file.write_all(interactor_input).await {
                 Err(result) => {
-                    return Err((
-                        result.to_string(),
-                        ProcessResource::default(),
-                        ProcessResource::default(),
-                    ));
+                    return RunWithInteractorResult::InternalError(result.to_string());
                 }
                 Ok(_) => {}
             },
@@ -647,11 +469,7 @@ impl ExeCode {
             let stderr = match std::fs::File::create(interactor_exe_resources.stderr_path.as_str())
             {
                 Err(result) => {
-                    return Err((
-                        result.to_string(),
-                        ProcessResource::default(),
-                        ProcessResource::default(),
-                    ));
+                    return RunWithInteractorResult::InternalError(result.to_string());
                 }
                 Ok(result) => result,
             };
@@ -663,41 +481,28 @@ impl ExeCode {
                 .current_dir(interactor_exe_resources.exe_dir.path())
                 .spawn()
             {
-                Err(_) => {
-                    return Err((
-                        String::from("Runtime Error"),
-                        ProcessResource::default(),
-                        ProcessResource::default(),
-                    ));
+                Err(result) => {
+                    return RunWithInteractorResult::InternalError(result.to_string());
                 }
                 Ok(result) => result,
             }
         };
 
         let interactor_start_time = Instant::now();
-        match interactor_exe_resources
-            .cgroup
-            .add_task(CgroupPid::from(interactor_p.id().unwrap() as u64))
+        match interactor_tmp_cgroup
+            .add_task(interactor_p.id().unwrap() as u64)
         {
             Err(result) => {
                 let _ = interactor_p.kill();
-                return Err((
-                    result.to_string(),
-                    ProcessResource::default(),
-                    ProcessResource::default(),
-                ));
+                return RunWithInteractorResult::InternalError(result.to_string());
             }
             Ok(_) => {}
         };
 
         let mut p = {
-            let stderr = match std::fs::File::create(exe_resources.stderr_path.as_str()) {
+            let stderr = match std::fs::File::create(self.stderr_path.as_str()) {
                 Err(result) => {
-                    return Err((
-                        result.to_string(),
-                        ProcessResource::default(),
-                        ProcessResource::default(),
-                    ));
+                    return RunWithInteractorResult::InternalError(result.to_string());
                 }
                 Ok(result) => result,
             };
@@ -705,55 +510,46 @@ impl ExeCode {
                 .stdin(unsafe { std::fs::File::from_raw_fd(pipe_from_interactor_read) })
                 .stdout(unsafe { std::fs::File::from_raw_fd(pipe_to_interactor_write) })
                 .stderr(stderr)
-                .uid(exe_resources.uid)
-                .current_dir(exe_resources.exe_dir.path())
+                .uid(self.uid)
+                .current_dir(self.exe_dir.path())
                 .spawn()
             {
-                Err(_) => {
-                    return Err((
-                        String::from("Runtime Error"),
-                        ProcessResource::default(),
-                        ProcessResource::default(),
-                    ));
+                Err(result) => {
+                    return RunWithInteractorResult::InternalError(result.to_string());
                 }
                 Ok(result) => result,
             }
         };
         let start_time = Instant::now();
 
-        match exe_resources
-            .cgroup
-            .add_task(CgroupPid::from(p.id().unwrap() as u64))
+        match tmp_cgroup
+            .add_task(p.id().unwrap() as u64)
         {
             Err(result) => {
                 let _ = p.kill();
-                return Err((
-                    result.to_string(),
-                    ProcessResource::default(),
-                    ProcessResource::default(),
-                ));
+                return RunWithInteractorResult::InternalError(result.to_string());
             }
             Ok(_) => {}
         };
 
-        let result = tokio::time::timeout(Duration::from(exe_resources.time_limit), p.wait()).await;
+        let result = tokio::time::timeout(Duration::from(self.time_limit), p.wait()).await;
         let runtime = TimeSpan::from(start_time.elapsed());
-        exe_resources.kill_processes();
+        tmp_cgroup.kill_processes();
         let interactor_result = tokio::time::timeout(
             Duration::from(interactor_exe_resources.time_limit),
             interactor_p.wait(),
         )
         .await;
         let interactor_runtime = TimeSpan::from(interactor_start_time.elapsed());
-        interactor_exe_resources.kill_processes();
-        let memory = MemorySize::from_bytes(exe_resources.max_usage_in_bytes() as usize);
+        interactor_tmp_cgroup.kill_processes();
+        let memory = MemorySize::from_bytes(tmp_cgroup.max_usage_in_bytes() as usize);
         let interactor_memory =
-            MemorySize::from_bytes(interactor_exe_resources.max_usage_in_bytes() as usize);
+            MemorySize::from_bytes(interactor_tmp_cgroup.max_usage_in_bytes() as usize);
         let p_resource = ProcessResource {
             memory: memory,
             runtime: runtime,
             stdout: vec![],
-            stderr: exe_resources.read_stderr().await,
+            stderr: self.read_stderr().await,
         };
         let interactor_resource = ProcessResource {
             memory: interactor_memory,
@@ -761,31 +557,45 @@ impl ExeCode {
             stdout: interactor_exe_resources.read_interactorout().await,
             stderr: interactor_exe_resources.read_stderr().await,
         };
-        let return_status = {
-            if exe_resources.oom_receiver.try_recv().is_ok() {
-                String::from("Memory Limit Exceed")
-            } else if result.is_err() || runtime > exe_resources.time_limit {
-                String::from("Time Limit Exceed")
-            } else if result.unwrap().is_ok_and(|status| status.success()) == false {
-                String::from("Runtime Error")
-            } else if interactor_exe_resources.oom_receiver.try_recv().is_ok() {
-                String::from("Interactor Memory Limit Exceed")
-            } else if interactor_result.is_err() {
-                String::from("Interactor Time Limit Exceed")
-            } else if interactor_result
-                .unwrap()
-                .is_ok_and(|status| status.success())
-            {
-                String::new()
-            } else {
-                String::from("Interactor Runtime Error")
-            }
-        };
-
-        if return_status.is_empty() {
-            Ok((p_resource, interactor_resource))
+        if tmp_cgroup.oom_receiver_try_recv().is_ok() {
+            RunWithInteractorResult::MemoryLimitExceeded(p_resource, interactor_resource)
+        } else if result.is_err() || runtime > self.time_limit {
+            RunWithInteractorResult::TimeLimitExceeded(p_resource, interactor_resource)
+        } else if result.unwrap().is_ok_and(|status| status.success()) == false {
+            RunWithInteractorResult::RuntimeError(p_resource, interactor_resource)
+        } else if interactor_tmp_cgroup.oom_receiver_try_recv().is_ok() {
+            RunWithInteractorResult::InteractorMemoryLimitExceeded(p_resource, interactor_resource)
+        } else if interactor_result.is_err() {
+            RunWithInteractorResult::InteractorTimeLimitExceeded(p_resource, interactor_resource)
+        } else if interactor_result
+            .unwrap()
+            .is_ok_and(|status| status.success())
+        {
+            RunWithInteractorResult::Ok(p_resource, interactor_resource)
         } else {
-            Err((return_status, p_resource, interactor_resource))
+            RunWithInteractorResult::InteractorRuntimeError(p_resource, interactor_resource)
         }
+    }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct ExeCode {
+    exe_files: HashMap<String, Vec<u8>>,
+    compile_and_exe_setting: CompileAndExeSetting,
+}
+
+#[cfg(target_os = "linux")]
+impl ExeCode {
+    pub async fn initial_exe_resources(&self,
+        time_limit: TimeSpan,
+        memory_limit: MemorySize,
+        uid: u32) -> InitExeResourceResult {
+        ExeResources::new(
+            uid,
+            &self.exe_files,
+            &self.compile_and_exe_setting,
+            &time_limit,
+            &memory_limit,
+        ).await
     }
 }

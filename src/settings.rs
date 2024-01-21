@@ -1,135 +1,143 @@
 #![allow(non_snake_case)]
 use config::Config;
-use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 use std::collections::HashMap;
 use std::io::Write;
-use std::path::PathBuf;
-use toml;
-
-use crate::quantity::{MemorySize, TimeSpan};
-
-lazy_static! {
-    pub static ref COMPILE_AND_EXE_SETTING: CompileAndExeSetting = {
-        let result = CompileAndExeSetting::load();
-        result.store();
-        result
-    };
-    pub static ref RUN_SETTING: RunSetting = {
-        let result = RunSetting::load();
-        result.store();
-        result
-    };
-}
+use std::process::{Command, Stdio};
 
 #[serde_as]
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct CompileAndExeSetting {
-    #[serde(default = "CompileAndExeSetting::language_default")]
-    pub languages: HashMap<String, HashMap<String, String>>,
+    #[serde(default = "CompileAndExeSetting::raw_code_default")]
+    pub raw_code: String,
+    #[serde(default = "CompileAndExeSetting::compile_command_default")]
+    pub compile_command: String,
+    #[serde(default = "CompileAndExeSetting::exe_command_default")]
+    pub exe_command: String, 
+    #[serde(default = "CompileAndExeSetting::exe_files_default")]
+    pub exe_files: Vec<String>
 }
 
 impl CompileAndExeSetting {
-    fn language_default() -> HashMap<String, HashMap<String, String>> {
-        let mut languages = HashMap::new();
-        languages.insert(String::from("C++"), {
-            let mut map = HashMap::new();
-            map.insert(String::from("raw_code"), String::from("main.cpp"));
-            map.insert(
-                String::from("compile_command"),
-                String::from("#!/bin/bash\ng++ main.cpp -o main"),
-            );
-            map.insert(String::from("exe_file"), String::from("main"));
-            map.insert(
-                String::from("exe_command"),
-                String::from("#!/bin/bash\nulimit -s unlimited\nmain"),
-            );
-            map
-        });
-        languages.insert(String::from("Python3"), {
-            let mut map = HashMap::new();
-            map.insert(String::from("exe_file"), String::from("main.py3"));
-            map.insert(
-                String::from("exe_command"),
-                String::from("#!/bin/bash\nulimit -s unlimited\npython3 main.py3"),
-            );
-            map
-        });
-        languages
-    }
-    fn default() -> Self {
+    pub fn default() -> Self {
         CompileAndExeSetting {
-            languages: Self::language_default(),
+            raw_code: Self::raw_code_default(),
+            compile_command: Self::compile_command_default(),
+            exe_command: Self::exe_command_default(),
+            exe_files: Self::exe_files_default(),
         }
     }
-    fn load() -> Self {
-        let default = Self::default();
-        let toml = toml::to_string(&default).unwrap();
-        let _ = std::fs::File::create(PathBuf::from("config/compile_and_exe_default.toml"))
-            .unwrap()
-            .write_all(toml.as_bytes());
-
-        let s = Config::builder()
-            .add_source(config::File::with_name("config/compile_and_exe").required(true))
-            .build();
-
-        let result = s.unwrap().try_deserialize();
-
-        result.unwrap()
+    fn raw_code_default() -> String {
+        String::new()
     }
-
-    fn store(&self) {
-        let toml = toml::to_string(&self).unwrap();
-        let _ = std::fs::File::create(PathBuf::from("config/compile_and_exe.toml"))
-            .unwrap()
-            .write_all(toml.as_bytes());
+    fn compile_command_default() -> String {
+        String::new()
+    }
+    fn exe_command_default() -> String {
+        String::new()
+    }
+    fn exe_files_default() -> Vec<String> {
+        vec![]
     }
 }
 
 #[serde_as]
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
-pub struct RunSetting {
-    #[serde(default = "RunSetting::memory_limit_default")]
-    pub memory_limit: MemorySize,
-    #[serde(default = "RunSetting::time_limit_default")]
-    pub time_limit: TimeSpan,
+pub struct CompileAndExeSettings {
+    #[serde(default = "CompileAndExeSettings::languages_default")]
+    pub languages: HashMap<String, CompileAndExeSetting>,
 }
 
-impl RunSetting {
-    fn memory_limit_default() -> MemorySize {
-        MemorySize::from_gigabytes(1)
+impl CompileAndExeSettings {
+    fn languages_default() -> HashMap<String, CompileAndExeSetting> {
+        HashMap::new()
     }
-    fn time_limit_default() -> TimeSpan {
-        TimeSpan::from_milliseconds(1000)
-    }
-    fn default() -> Self {
-        RunSetting {
-            memory_limit: Self::memory_limit_default(),
-            time_limit: Self::time_limit_default(),
+    pub fn default() -> Self {
+        CompileAndExeSettings {
+            languages: Self::languages_default()
         }
     }
 
-    fn load() -> Self {
-        let default = Self::default();
-        let toml = toml::to_string(&default).unwrap();
-        let _ = std::fs::File::create(PathBuf::from("config/run_default.toml"))
-            .unwrap()
-            .write_all(toml.as_bytes());
-
-        let s = Config::builder()
-            .add_source(config::File::with_name("config/run").required(true))
-            .build();
-
-        let result = s.unwrap().try_deserialize();
-
-        result.unwrap()
+    pub fn load_from_string(s: String, format: config::FileFormat) -> Result<Self, ()> {
+        match Config::builder()
+        .add_source(config::File::from_str(s.as_str(), format))
+        .build() {
+            Ok(config) => match config.try_deserialize() {
+                Ok(result) => Ok(result),
+                Err(_) => Err(()),
+            },
+            Err(_) => Err(()),
+        }
     }
 
-    fn store(&self) {
-        let toml = toml::to_string(&self).unwrap();
-        let _ = std::fs::File::create(PathBuf::from("config/run.toml"))
+    pub fn load_from_file(file_path: &str, format: config::FileFormat) -> Result<Self, ()> {
+        match Config::builder().add_source(config::File::with_name(file_path).format(format)).build() {
+            Ok(config) => match config.try_deserialize() {
+                Ok(result) => Ok(result),
+                Err(_) => Err(()),
+            },
+            Err(_) => Err(()),
+        }
+    }
+
+    pub fn store_to_file(&self, file_path: &str, format: config::FileFormat) {
+        std::fs::File::create(file_path)
             .unwrap()
-            .write_all(toml.as_bytes());
+            .write_all(self.format_to_string(format).as_bytes())
+            .unwrap();
+    }
+
+    pub fn format_to_string(&self, format: config::FileFormat) -> String {
+        match format {
+            config::FileFormat::Toml => toml::to_string(self).unwrap(),
+            config::FileFormat::Json => serde_json::to_string_pretty(self).unwrap(),
+            config::FileFormat::Yaml => serde_yaml::to_string(self).unwrap(),
+            config::FileFormat::Ini => toml_to_ini(&toml::to_string(self).unwrap()),
+            config::FileFormat::Ron => ron::to_string(self).unwrap(),
+            config::FileFormat::Json5 => json5::to_string(self).unwrap(),
+        }
+    }
+
+    pub fn get_language(&self, language: &str) -> Option<&CompileAndExeSetting> {
+        self.languages.get(language)
+    }
+}
+
+fn toml_to_ini(toml_string: &str) -> String {
+    let value: toml::Value = toml::from_str(toml_string).unwrap();
+    let mut ini_string = String::new();
+
+    for (section_name, section) in value.as_table().unwrap() {
+        ini_string.push_str(&format!("[{}]\n", section_name));
+
+        for (key, value) in section.as_table().unwrap() {
+            ini_string.push_str(&format!("{}={}\n", key, value));
+        }
+
+        ini_string.push('\n');
+    }
+
+    ini_string
+}
+
+pub fn create_a_tmp_user_return_uid(user_name: &str) -> Result<u32, ()> {
+    let _ = Command::new("sudo")
+        .arg("adduser")
+        .arg("--disabled-password")
+        .arg("--gecos")
+        .arg("\"\"")
+        .arg("--force-badname")
+        .arg(user_name)
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .unwrap()
+        .wait();
+    match users::get_user_by_name(user_name) {
+        None => {
+            return Err(());
+        }
+        Some(result) => Ok(result.uid())
     }
 }
