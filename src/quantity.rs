@@ -339,7 +339,6 @@ impl fmt::Display for ProcessResource {
     }
 }
 
-
 pub struct TmpCgroup {
     cgroup: Cgroup,
     oom_receiver: Receiver<String>,
@@ -350,12 +349,13 @@ impl TmpCgroup {
         let id = uuid::Uuid::new_v4().to_string();
         let h = cgroups_rs::hierarchies::auto();
         let cgroup = match CgroupBuilder::new(id.as_str())
-        .memory()
-        .memory_hard_limit(memory_limit.as_bytes() as i64)
-        .done()
-        .cpu()
-        .shares(100)
-        .done().build(h)
+            .memory()
+            .memory_hard_limit(memory_limit.as_bytes() as i64)
+            .done()
+            .cpu()
+            .shares(100)
+            .done()
+            .build(h)
         {
             Err(result) => {
                 return Err(result.to_string());
@@ -379,14 +379,9 @@ impl TmpCgroup {
     }
 
     pub fn add_task(&self, pid: u64) -> Result<(), String> {
-        match self
-        .cgroup
-        .add_task(CgroupPid::from(pid))
-        {
-            Err(result) => {
-                Err(result.to_string())
-            }
-            Ok(_) => {Ok(())}
+        match self.cgroup.add_task(CgroupPid::from(pid)) {
+            Err(result) => Err(result.to_string()),
+            Ok(_) => Ok(()),
         }
     }
 

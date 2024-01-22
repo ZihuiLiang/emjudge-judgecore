@@ -14,9 +14,9 @@ pub struct CompileAndExeSetting {
     #[serde(default = "CompileAndExeSetting::compile_command_default")]
     pub compile_command: String,
     #[serde(default = "CompileAndExeSetting::exe_command_default")]
-    pub exe_command: String, 
+    pub exe_command: String,
     #[serde(default = "CompileAndExeSetting::exe_files_default")]
-    pub exe_files: Vec<String>
+    pub exe_files: Vec<String>,
 }
 
 impl CompileAndExeSetting {
@@ -55,14 +55,15 @@ impl CompileAndExeSettings {
     }
     pub fn default() -> Self {
         CompileAndExeSettings {
-            languages: Self::languages_default()
+            languages: Self::languages_default(),
         }
     }
 
     pub fn load_from_string(s: String, format: config::FileFormat) -> Result<Self, ()> {
         match Config::builder()
-        .add_source(config::File::from_str(s.as_str(), format))
-        .build() {
+            .add_source(config::File::from_str(s.as_str(), format))
+            .build()
+        {
             Ok(config) => match config.try_deserialize() {
                 Ok(result) => Ok(result),
                 Err(_) => Err(()),
@@ -72,7 +73,10 @@ impl CompileAndExeSettings {
     }
 
     pub fn load_from_file(file_path: &str, format: config::FileFormat) -> Result<Self, ()> {
-        match Config::builder().add_source(config::File::with_name(file_path).format(format)).build() {
+        match Config::builder()
+            .add_source(config::File::with_name(file_path).format(format))
+            .build()
+        {
             Ok(config) => match config.try_deserialize() {
                 Ok(result) => Ok(result),
                 Err(_) => Err(()),
@@ -138,6 +142,6 @@ pub fn create_a_tmp_user_return_uid(user_name: &str) -> Result<u32, ()> {
         None => {
             return Err(());
         }
-        Some(result) => Ok(result.uid())
+        Some(result) => Ok(result.uid()),
     }
 }

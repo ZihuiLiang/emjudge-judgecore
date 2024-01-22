@@ -24,108 +24,11 @@ tempfile = "3.9.0"
 toml = "0.8.8"
 users = "0.11.0"
 uuid = { version = "1.6.1", features = ["v4", "fast-rng", "macro-diagnostics"] }
+tokio = {version = "1.35.1",features = ["rt", "process", "fs", "time", "io-std", "io-util", "macros"]}
 
 [target.'cfg(target_os="linux")'.dependencies]
 cgroups-rs = "0.3.4"
 nix = { version = "0.27.1", features = ["process", "signal", "resource"] }
 
-[dependencies.tokio]
-version = "1.35.1"
-optional = true
-features = ["rt", "process", "fs", "time", "io-std", "io-util", "macros"]
-
 [features]
-full = ["async", "thread"]
-async = ["tokio"]
-thread = []
-
-[[example]]
-name = "thread_1plusto100"
-path = "examples/thread_mode/1plusto100.rs"
-required-features = ["thread"]
-
-[[example]]
-name = "thread_aplusb"
-path = "examples/thread_mode/aplusb.rs"
-required-features = ["thread"]
-
-[[example]]
-name = "thread_compile"
-path = "examples/thread_mode/compile.rs"
-required-features = ["thread"]
-
-[[example]]
-name = "thread_guess_number"
-path = "examples/thread_mode/guess_number.rs"
-required-features = ["thread"]
-
-[[example]]
-name = "thread_helloworld" 
-path = "examples/thread_mode/helloworld.rs"
-required-features = ["thread"]
-
-[[example]]
-name = "thread_memorylimit_exceed"
-path = "examples/thread_mode/memorylimit_exceed.rs"
-required-features = ["thread"]
-
-[[example]]
-name = "thread_permission" 
-path = "examples/thread_mode/permission.rs"
-required-features = ["thread"]
-
-[[example]]
-name = "thread_timelimit_exceed" 
-path = "examples/thread_mode/timelimit_exceed.rs"
-required-features = ["thread"]
-
-[[example]]
-name = "thread_multiple" 
-path = "examples/thread_mode/multiple.rs"
-required-features = ["thread"]
-
-
-[[example]]
-name = "async_1plusto100"
-path = "examples/async_mode/1plusto100.rs"
-required-features = ["async"]
-
-[[example]]
-name = "async_aplusb"
-path = "examples/async_mode/aplusb.rs"
-required-features = ["async"]
-
-[[example]]
-name = "async_compile"
-path = "examples/async_mode/compile.rs"
-required-features = ["async"]
-
-[[example]]
-name = "async_guess_number"
-path = "examples/async_mode/guess_number.rs"
-required-features = ["async"]
-
-[[example]]
-name = "async_helloworld" 
-path = "examples/async_mode/helloworld.rs"
-required-features = ["async"]
-
-[[example]]
-name = "async_memorylimit_exceed"
-path = "examples/async_mode/memorylimit_exceed.rs"
-required-features = ["async"]
-
-[[example]]
-name = "async_permission" 
-path = "examples/async_mode/permission.rs"
-required-features = ["async"]
-
-[[example]]
-name = "async_timelimit_exceed" 
-path = "examples/async_mode/timelimit_exceed.rs"
-required-features = ["async"]
-
-[[example]]
-name = "async_multiple" 
-path = "examples/async_mode/multiple.rs"
-required-features = ["async"]
+full = []
