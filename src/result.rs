@@ -90,6 +90,7 @@ pub enum RunToEndResult {
     RuntimeError(ProcessResource),
     MemoryLimitExceeded(ProcessResource),
     TimeLimitExceeded(ProcessResource),
+    OutputLimitExceeded(ProcessResource),
     Ok(ProcessResource),
 }
 
@@ -108,6 +109,9 @@ impl RunToEndResult {
             }
             RunToEndResult::TimeLimitExceeded(i) => {
                 panic!("RunToEndResult::TimeLimitExceeded({}) is not allowed", i)
+            }
+            RunToEndResult::OutputLimitExceeded(i) => {
+                panic!("RunToEndResult::OutputLimitExceeded({}) is not allowed", i)
             }
         }
     }
@@ -128,6 +132,7 @@ impl std::fmt::Display for RunToEndResult {
             RunToEndResult::MemoryLimitExceeded(i) => write!(f, "MemoryLimitExceeded({})", i),
             RunToEndResult::TimeLimitExceeded(i) => write!(f, "TimeLimitExceeded({})", i),
             RunToEndResult::Ok(i) => write!(f, "Ok({})", i),
+            RunToEndResult::OutputLimitExceeded(i) => write!(f, "OutputLimitExceeded({})", i),
         }
     }
 }
@@ -138,9 +143,11 @@ pub enum RunWithInteractorResult {
     RuntimeError(ProcessResource, ProcessResource),
     MemoryLimitExceeded(ProcessResource, ProcessResource),
     TimeLimitExceeded(ProcessResource, ProcessResource),
+    OutputLimitExceeded(ProcessResource, ProcessResource),
     InteractorRuntimeError(ProcessResource, ProcessResource),
     InteractorMemoryLimitExceeded(ProcessResource, ProcessResource),
     InteractorTimeLimitExceeded(ProcessResource, ProcessResource),
+    InteractorOutputLimitExceeded(ProcessResource, ProcessResource),
     Ok(ProcessResource, ProcessResource),
 }
 
@@ -176,6 +183,14 @@ impl RunWithInteractorResult {
                 "RunWithInteractorResult::InteractorTimeLimitExceeded({},{}) is not allowed",
                 i, j
             ),
+            RunWithInteractorResult::InteractorOutputLimitExceeded(i, j) => panic!(
+                "RunWithInteractorResult::InteractorOutputLimitExceeded({},{}) is not allowed",
+                i, j
+            ),
+            RunWithInteractorResult::OutputLimitExceeded(i, j) => panic!(
+                "RunWithInteractorResult::OutputLimitExceeded({},{}) is not allowed",
+                i, j
+            ),
         }
     }
 
@@ -196,6 +211,7 @@ pub enum OnlyRunResult {
     RuntimeError(ProcessResource),
     MemoryLimitExceeded(ProcessResource),
     TimeLimitExceeded(ProcessResource),
+    OutputLimitExceeded(ProcessResource),
     Ok(ProcessResource),
 }
 
@@ -222,6 +238,9 @@ impl OnlyRunResult {
             OnlyRunResult::TimeLimitExceeded(i) => {
                 panic!("OnlyRunResult::TimeLimitExceeded({}) is not allowed", i)
             }
+            OnlyRunResult::OutputLimitExceeded(i) => {
+                panic!("OnlyRunResult::OutputLimitExceeded({}) is not allowed", i)
+            }
         }
     }
 
@@ -244,6 +263,7 @@ impl std::fmt::Display for OnlyRunResult {
             OnlyRunResult::MemoryLimitExceeded(i) => write!(f, "MemoryLimitExceeded({})", i),
             OnlyRunResult::TimeLimitExceeded(i) => write!(f, "TimeLimitExceeded({})", i),
             OnlyRunResult::Ok(i) => write!(f, "Ok({})", i),
+            OnlyRunResult::OutputLimitExceeded(i) => write!(f, "OutputLimitExceeded({})", i),
         }
     }
 }
@@ -279,6 +299,7 @@ impl From<RunToEndResult> for OnlyRunResult {
             RunToEndResult::MemoryLimitExceeded(i) => OnlyRunResult::MemoryLimitExceeded(i),
             RunToEndResult::TimeLimitExceeded(i) => OnlyRunResult::TimeLimitExceeded(i),
             RunToEndResult::Ok(i) => OnlyRunResult::Ok(i),
+            RunToEndResult::OutputLimitExceeded(i) => OnlyRunResult::OutputLimitExceeded(i),
         }
     }
 }
@@ -292,10 +313,12 @@ pub enum RunAndEvalResult {
     RuntimeError(ProcessResource, ProcessResource),
     MemoryLimitExceeded(ProcessResource, ProcessResource),
     TimeLimitExceeded(ProcessResource, ProcessResource),
+    OutputLimitExceeded(ProcessResource, ProcessResource),
     EvalCompileError(String),
     EvalRuntimeError(ProcessResource, ProcessResource),
     EvalMemoryLimitExceeded(ProcessResource, ProcessResource),
     EvalTimeLimitExceeded(ProcessResource, ProcessResource),
+    EvalOutputLimitExceeded(ProcessResource, ProcessResource),
     Ok(ProcessResource, ProcessResource),
 }
 
@@ -328,6 +351,12 @@ impl RunAndEvalResult {
             }
             RunAndEvalResult::Ok(_, _) => panic!("RunAndEvalResult::Ok(_, _) is not allowed"),
             RunAndEvalResult::PermissionDenied => RunAndEvalResult::PermissionDenied,
+            RunAndEvalResult::OutputLimitExceeded(i, j) => {
+                RunAndEvalResult::EvalOutputLimitExceeded(i.clone(), j.clone())
+            }
+            RunAndEvalResult::EvalOutputLimitExceeded(_, _) => {
+                panic!("RunAndEvalResult::EvalOutputLimitExceeded(_, _) is not allowed")
+            }
         }
     }
 
@@ -372,6 +401,14 @@ impl RunAndEvalResult {
                 "RunAndEvalResult::EvalTimeLimitExceeded({},{}) is not allowed",
                 i, j
             ),
+            RunAndEvalResult::EvalOutputLimitExceeded(i, j) => panic!(
+                "RunAndEvalResult::EvalOutputLimitExceeded({},{}) is not allowed",
+                i, j
+            ),
+            RunAndEvalResult::OutputLimitExceeded(i, j) => panic!(
+                "RunAndEvalResult::OutputLimitExceeded({},{}) is not allowed",
+                i, j
+            ),
         }
     }
 
@@ -406,6 +443,12 @@ impl std::fmt::Display for RunAndEvalResult {
             }
             RunAndEvalResult::Ok(i, j) => write!(f, "Ok({}, {})", i, j),
             RunAndEvalResult::PermissionDenied => write!(f, "PermissionDenied"),
+            RunAndEvalResult::OutputLimitExceeded(i, j) => {
+                write!(f, "OutputLimitExceeded({},{})", i, j)
+            }
+            RunAndEvalResult::EvalOutputLimitExceeded(i, j) => {
+                write!(f, "EvalOutputLimitExceeded({},{})", i, j)
+            }
         }
     }
 }
@@ -442,6 +485,7 @@ pub enum AnsAndEvalResult {
     EvalRuntimeError(ProcessResource),
     EvalMemoryLimitExceeded(ProcessResource),
     EvalTimeLimitExceeded(ProcessResource),
+    EvalOutputLimitExceeded(ProcessResource),
     Ok(ProcessResource),
 }
 
@@ -472,6 +516,10 @@ impl AnsAndEvalResult {
                 "AnsAndEvalResult::EvalTimeLimitExceeded({}) is not allowed",
                 i
             ),
+            AnsAndEvalResult::EvalOutputLimitExceeded(i) => panic!(
+                "AnsAndEvalResult::EvalOutputLimitExceeded({}) is not allowed",
+                i
+            ),
         }
     }
 
@@ -496,6 +544,9 @@ impl std::fmt::Display for AnsAndEvalResult {
             }
             AnsAndEvalResult::EvalTimeLimitExceeded(i) => write!(f, "EvalTimeLimitExceeded({})", i),
             AnsAndEvalResult::Ok(i) => write!(f, "Ok({})", i),
+            AnsAndEvalResult::EvalOutputLimitExceeded(i) => {
+                write!(f, "EvalOutputLimitExceeded({})", i)
+            }
         }
     }
 }
@@ -531,6 +582,7 @@ impl From<RunToEndResult> for AnsAndEvalResult {
             RunToEndResult::MemoryLimitExceeded(i) => AnsAndEvalResult::EvalMemoryLimitExceeded(i),
             RunToEndResult::TimeLimitExceeded(i) => AnsAndEvalResult::EvalTimeLimitExceeded(i),
             RunToEndResult::Ok(i) => AnsAndEvalResult::Ok(i),
+            RunToEndResult::OutputLimitExceeded(i) => AnsAndEvalResult::EvalOutputLimitExceeded(i),
         }
     }
 }
@@ -544,10 +596,12 @@ pub enum RunAndInteractResult {
     RuntimeError(ProcessResource, ProcessResource),
     MemoryLimitExceeded(ProcessResource, ProcessResource),
     TimeLimitExceeded(ProcessResource, ProcessResource),
+    OutputLimitExceeded(ProcessResource, ProcessResource),
     InteractorCompileError(String),
     InteractorRuntimeError(ProcessResource, ProcessResource),
     InteractorMemoryLimitExceeded(ProcessResource, ProcessResource),
     InteractorTimeLimitExceeded(ProcessResource, ProcessResource),
+    InteractorOutputLimitExceeded(ProcessResource, ProcessResource),
     Ok(ProcessResource, ProcessResource),
 }
 
@@ -586,6 +640,12 @@ impl RunAndInteractResult {
                 panic!("RunAndInteractResult::Ok(_, _) is not allowed")
             }
             RunAndInteractResult::PermissionDenied => RunAndInteractResult::PermissionDenied,
+            RunAndInteractResult::OutputLimitExceeded(i, j) => {
+                RunAndInteractResult::InteractorOutputLimitExceeded(i.clone(), j.clone())
+            }
+            RunAndInteractResult::InteractorOutputLimitExceeded(_, _) => {
+                panic!("RunAndInteractResult::InteractorOutputLimitExceeded(_, _) is not allowed")
+            }
         }
     }
 
@@ -632,6 +692,14 @@ impl RunAndInteractResult {
                 "RunAndInteractResult::InteractorTimeLimitExceeded({},{}) is not allowed",
                 i, j
             ),
+            RunAndInteractResult::InteractorOutputLimitExceeded(i, j) => panic!(
+                "RunAndInteractResult::InteractorOutputLimitExceeded({},{}) is not allowed",
+                i, j
+            ),
+            RunAndInteractResult::OutputLimitExceeded(i, j) => panic!(
+                "RunAndInteractResult::OutputLimitExceeded({},{}) is not allowed",
+                i, j
+            ),
         }
     }
 
@@ -670,6 +738,12 @@ impl std::fmt::Display for RunAndInteractResult {
             }
             RunAndInteractResult::Ok(i, j) => write!(f, "Ok({}, {})", i, j),
             RunAndInteractResult::PermissionDenied => write!(f, "PermissionDenied"),
+            RunAndInteractResult::InteractorOutputLimitExceeded(i, j) => {
+                write!(f, "InteractorOutputLimitExceeded({},{})", i, j)
+            }
+            RunAndInteractResult::OutputLimitExceeded(i, j) => {
+                write!(f, "OutputLimitExceeded({},{})", i, j)
+            }
         }
     }
 }
@@ -718,6 +792,12 @@ impl From<RunWithInteractorResult> for RunAndInteractResult {
                 RunAndInteractResult::InteractorTimeLimitExceeded(i, j)
             }
             RunWithInteractorResult::Ok(i, j) => RunAndInteractResult::Ok(i, j),
+            RunWithInteractorResult::InteractorOutputLimitExceeded(i, j) => {
+                RunAndInteractResult::InteractorOutputLimitExceeded(i, j)
+            }
+            RunWithInteractorResult::OutputLimitExceeded(i, j) => {
+                RunAndInteractResult::OutputLimitExceeded(i, j)
+            }
         }
     }
 }

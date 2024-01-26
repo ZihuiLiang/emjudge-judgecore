@@ -1,4 +1,5 @@
-use crate::quantity::{MemorySize, ProcessResource, TimeSpan, TmpCgroup};
+use crate::cgroup::Cgroup;
+use crate::quantity::{MemorySize, ProcessResource, TimeSpan};
 use crate::result::{
     CompileResult, InitExeResourceResult, RunToEndResult, RunWithInteractorResult,
 };
@@ -17,6 +18,16 @@ use tokio::time::Instant;
 pub struct RawCode {
     code: Vec<u8>,
     compile_and_exe_setting: CompileAndExeSetting,
+}
+
+pub fn turn_command_into_command_and_args(command: &str) -> (String, Vec<String>) {
+    let mut command = command.split_whitespace();
+    let result_command = command.next().unwrap().to_string();
+    let mut result_args = vec![];
+    for arg in command {
+        result_args.push(arg.to_string());
+    }
+    (result_command, result_args)
 }
 
 impl RawCode {
@@ -43,7 +54,10 @@ impl RawCode {
                 compile_and_exe_setting: self.compile_and_exe_setting.clone(),
             });
         }
-        let id = uuid::Uuid::new_v4().simple().to_string();
+        let id = format!(
+            "emjudge-judgecore-compile-{}",
+            uuid::Uuid::new_v4().simple().to_string()
+        );
         let compile_dir = match TempDir::with_prefix(id.as_str()) {
             Err(result) => {
                 return CompileResult::InternalError(result.to_string());
@@ -57,8 +71,6 @@ impl RawCode {
             self.compile_and_exe_setting.raw_code
         );
         let raw_code_path = raw_code_path.as_str();
-        let compile_command_path = format!("{}/compile.sh", compile_dir.path().to_str().unwrap());
-        let compile_command_path = compile_command_path.as_str();
         match tokio::fs::File::create(raw_code_path).await {
             Err(result) => {
                 return CompileResult::InternalError(result.to_string());
@@ -70,35 +82,11 @@ impl RawCode {
                 Ok(_) => {}
             },
         };
-        match tokio::fs::File::create(compile_command_path).await {
-            Err(result) => {
-                return CompileResult::InternalError(result.to_string());
-            }
-            Ok(mut file) => match file.write_all(compile_command.as_bytes()).await {
-                Err(result) => {
-                    return CompileResult::InternalError(result.to_string());
-                }
-                Ok(_) => {}
-            },
-        };
-        match tokio::fs::metadata(compile_command_path).await {
-            Err(result) => {
-                return CompileResult::InternalError(result.to_string());
-            }
-            Ok(metadata) => {
-                let mut permissions = metadata.permissions();
-                permissions.set_mode(0o500);
-                match tokio::fs::set_permissions(&compile_command_path, permissions.clone()).await {
-                    Err(result) => {
-                        return CompileResult::InternalError(result.to_string());
-                    }
-                    Ok(_) => {}
-                }
-            }
-        };
-        let p = tokio::process::Command::new("./compile.sh")
+        let (command, args) = turn_command_into_command_and_args(compile_command);
+        let p = tokio::process::Command::new(command)
             .stdout(Stdio::null())
             .stderr(Stdio::piped())
+            .args(args)
             .current_dir(compile_dir.path().to_str().unwrap())
             .spawn();
         let mut p = match p {
@@ -150,8 +138,7 @@ impl RawCode {
 pub struct ExeResources {
     uid: u32,
     exe_dir: TempDir,
-    time_limit: TimeSpan,
-    memory_limit: MemorySize,
+    exe_command: String,
     stdin_path: String,
     stdout_path: String,
     stderr_path: String,
@@ -165,13 +152,14 @@ impl ExeResources {
         uid: u32,
         exe_files: &HashMap<String, Vec<u8>>,
         compile_and_exe_setting: &CompileAndExeSetting,
-        time_limit: &TimeSpan,
-        memory_limit: &MemorySize,
     ) -> InitExeResourceResult {
         if tokio::fs::read_to_string("/etc/sudoers").await.is_err() {
             return InitExeResourceResult::PermissionDenied;
         }
-        let id = uuid::Uuid::new_v4().simple().to_string();
+        let id = format!(
+            "emjudge-judgecore-exe-{}",
+            uuid::Uuid::new_v4().simple().to_string()
+        );
         let exe_dir = match TempDir::with_prefix(id.as_str()) {
             Err(result) => {
                 return InitExeResourceResult::InternalError(result.to_string());
@@ -184,46 +172,12 @@ impl ExeResources {
             .clone()
             .to_string_lossy()
             .to_string();
-        let exe_command_path = format!("{}/exe.sh", exe_dir_path);
         let stdin_path = format!("{}/stdin", exe_dir_path);
         let stdout_path = format!("{}/stdout", exe_dir_path);
         let stderr_path = format!("{}/stderr", exe_dir_path);
         let interactorin_path = format!("{}/interactorin", exe_dir_path);
         let interactorout_path = format!("{}/interactorout", exe_dir_path);
-        let mut all_file_path_vec = vec![
-            exe_command_path.clone(),
-            interactorin_path.clone(),
-            interactorout_path.clone(),
-        ];
-        match tokio::fs::File::create(exe_command_path.as_str()).await {
-            Err(result) => {
-                return InitExeResourceResult::InternalError(result.to_string());
-            }
-            Ok(mut file) => match file
-                .write_all(compile_and_exe_setting.exe_command.as_bytes())
-                .await
-            {
-                Err(result) => {
-                    return InitExeResourceResult::InternalError(result.to_string());
-                }
-                Ok(_) => {}
-            },
-        };
-        match tokio::fs::metadata(exe_command_path.as_str()).await {
-            Err(result) => {
-                return InitExeResourceResult::InternalError(result.to_string());
-            }
-            Ok(metadata) => {
-                let mut permissions = metadata.permissions();
-                permissions.set_mode(0o500);
-                match tokio::fs::set_permissions(&exe_command_path, permissions.clone()).await {
-                    Err(result) => {
-                        return InitExeResourceResult::InternalError(result.to_string());
-                    }
-                    Ok(_) => {}
-                }
-            }
-        }
+        let mut all_file_path_vec = vec![interactorin_path.clone(), interactorout_path.clone()];
         match tokio::fs::File::create(interactorin_path.as_str()).await {
             Err(result) => {
                 return InitExeResourceResult::InternalError(result.to_string());
@@ -316,8 +270,7 @@ impl ExeResources {
         InitExeResourceResult::Ok(Self {
             uid: uid,
             exe_dir: exe_dir,
-            time_limit: time_limit.clone(),
-            memory_limit: memory_limit.clone(),
+            exe_command: compile_and_exe_setting.exe_command.clone(),
             stdin_path: stdin_path,
             stdout_path: stdout_path,
             stderr_path: stderr_path,
@@ -371,13 +324,13 @@ impl ExeResources {
         }
     }
 
-    pub async fn run_to_end(&mut self, input: &Vec<u8>) -> RunToEndResult {
-        let tmp_cgroup = match TmpCgroup::new(&self.memory_limit) {
-            Err(result) => {
-                return RunToEndResult::InternalError(result.to_string());
-            }
-            Ok(result) => result,
-        };
+    pub async fn run_to_end(
+        &mut self,
+        input: &Vec<u8>,
+        cgroup: &mut Cgroup,
+        time_limit: TimeSpan,
+        output_limit: MemorySize,
+    ) -> RunToEndResult {
         match tokio::fs::File::create(self.stdin_path.as_str()).await {
             Err(result) => {
                 return RunToEndResult::InternalError(result.to_string());
@@ -389,6 +342,12 @@ impl ExeResources {
                 Ok(_) => {}
             },
         };
+        match cgroup.reset_max_usage_in_bytes() {
+            Err(result) => {
+                return RunToEndResult::InternalError(result.to_string());
+            }
+            Ok(_) => {}
+        }
         let p = {
             let stdin = match std::fs::File::open(self.stdin_path.as_str()) {
                 Err(result) => return RunToEndResult::InternalError(result.to_string()),
@@ -402,10 +361,12 @@ impl ExeResources {
                 Err(result) => return RunToEndResult::InternalError(result.to_string()),
                 Ok(result) => result,
             };
-            tokio::process::Command::new("./exe.sh")
+            let (command, args) = turn_command_into_command_and_args(self.exe_command.as_str());
+            tokio::process::Command::new(command)
                 .stdin(stdin)
                 .stdout(stdout)
                 .stderr(stderr)
+                .args(args)
                 .current_dir(self.exe_dir.path())
                 .uid(self.uid)
                 .spawn()
@@ -416,26 +377,71 @@ impl ExeResources {
             }
             Ok(mut p) => {
                 let start_time = Instant::now();
-                match tmp_cgroup.add_task(p.id().unwrap() as u64) {
+                match cgroup.add_task(p.id().unwrap() as i32) {
                     Err(result) => {
-                        let _ = p.kill();
+                        let _ = p.kill().await;
                         return RunToEndResult::InternalError(result.to_string());
                     }
                     Ok(_) => {}
                 }
-                let result = tokio::time::timeout(Duration::from(self.time_limit), p.wait()).await;
+                let result = tokio::time::timeout(Duration::from(time_limit), p.wait()).await;
                 let runtime = TimeSpan::from(start_time.elapsed());
-                let memory = MemorySize::from_bytes(tmp_cgroup.max_usage_in_bytes() as usize);
-                tmp_cgroup.kill_processes();
-                let stdout = match self.read_stdout().await {
+                let _ = p.kill().await;
+                let is_oom = match cgroup.update_cgroup_and_controller_and_check_oom_kill() {
+                    Err(result) => {
+                        return RunToEndResult::InternalError(result.to_string());
+                    }
                     Ok(result) => result,
-                    Err(result) => return RunToEndResult::InternalError(result),
                 };
-                let stderr = match self.read_stderr().await {
-                    Ok(result) => result,
-                    Err(result) => return RunToEndResult::InternalError(result),
+                let memory = match cgroup.get_max_usage_in_bytes() {
+                    Err(result) => {
+                        return RunToEndResult::InternalError(result.to_string());
+                    }
+                    Ok(result) => MemorySize::from_bytes(result as usize),
                 };
-                if tmp_cgroup.oom_receiver_try_recv().is_ok() {
+                let stdout = {
+                    match check_file_limit(self.stdout_path.as_str(), output_limit).await {
+                        Err(result) => {
+                            return RunToEndResult::InternalError(result);
+                        }
+                        Ok(result) => {
+                            if result != "" {
+                                return RunToEndResult::OutputLimitExceeded(ProcessResource {
+                                    memory: memory,
+                                    runtime: runtime,
+                                    stdout: vec![],
+                                    stderr: vec![],
+                                });
+                            }
+                        }
+                    }
+                    match self.read_stdout().await {
+                        Ok(result) => result,
+                        Err(result) => return RunToEndResult::InternalError(result),
+                    }
+                };
+                let stderr = {
+                    match check_file_limit(self.stderr_path.as_str(), output_limit).await {
+                        Err(result) => {
+                            return RunToEndResult::InternalError(result);
+                        }
+                        Ok(result) => {
+                            if result != "" {
+                                return RunToEndResult::OutputLimitExceeded(ProcessResource {
+                                    memory: memory,
+                                    runtime: runtime,
+                                    stdout: vec![],
+                                    stderr: vec![],
+                                });
+                            }
+                        }
+                    }
+                    match self.read_stderr().await {
+                        Ok(result) => result,
+                        Err(result) => return RunToEndResult::InternalError(result),
+                    }
+                };
+                if is_oom {
                     return RunToEndResult::MemoryLimitExceeded(ProcessResource {
                         memory: memory,
                         runtime: runtime,
@@ -443,7 +449,7 @@ impl ExeResources {
                         stderr: stderr,
                     });
                 }
-                let in_time_result = if result.is_err() || runtime > self.time_limit {
+                let in_time_result = if result.is_err() || runtime > time_limit {
                     return RunToEndResult::TimeLimitExceeded(ProcessResource {
                         memory: memory,
                         runtime: runtime,
@@ -454,19 +460,19 @@ impl ExeResources {
                     result.unwrap()
                 };
                 if in_time_result.is_ok_and(|status| status.success()) {
-                    RunToEndResult::Ok(ProcessResource {
+                    return RunToEndResult::Ok(ProcessResource {
                         memory: memory,
                         runtime: runtime,
                         stdout: stdout,
                         stderr: stderr,
-                    })
+                    });
                 } else {
-                    RunToEndResult::RuntimeError(ProcessResource {
+                    return RunToEndResult::RuntimeError(ProcessResource {
                         memory: memory,
                         runtime: runtime,
                         stdout: stdout,
                         stderr: stderr,
-                    })
+                    });
                 }
             }
         }
@@ -474,22 +480,27 @@ impl ExeResources {
 
     pub async fn run_with_interactor(
         &mut self,
+        cgroup: &mut Cgroup,
+        time_limit: TimeSpan,
         interactor_exe_resources: &mut ExeResources,
+        interactor_cgroup: &mut Cgroup,
+        interactor_extra_time_limit: TimeSpan,
         interactor_input: &Vec<u8>,
+        output_limit: MemorySize,
     ) -> RunWithInteractorResult {
-        let tmp_cgroup = match TmpCgroup::new(&self.memory_limit) {
+        match cgroup.reset_max_usage_in_bytes() {
             Err(result) => {
                 return RunWithInteractorResult::InternalError(result.to_string());
             }
-            Ok(result) => result,
-        };
+            Ok(_) => {}
+        }
 
-        let interactor_tmp_cgroup = match TmpCgroup::new(&interactor_exe_resources.memory_limit) {
+        match interactor_cgroup.reset_max_usage_in_bytes() {
             Err(result) => {
                 return RunWithInteractorResult::InternalError(result.to_string());
             }
-            Ok(result) => result,
-        };
+            Ok(_) => {}
+        }
 
         let (pipe_to_interactor_read, pipe_to_interactor_write) = match nix::unistd::pipe() {
             Err(result) => {
@@ -525,10 +536,14 @@ impl ExeResources {
                 }
                 Ok(result) => result,
             };
-            match tokio::process::Command::new("./exe.sh")
+            let (command, args) =
+                turn_command_into_command_and_args(interactor_exe_resources.exe_command.as_str());
+
+            match tokio::process::Command::new(command)
                 .stdin(unsafe { std::fs::File::from_raw_fd(pipe_to_interactor_read) })
                 .stdout(unsafe { std::fs::File::from_raw_fd(pipe_from_interactor_write) })
                 .stderr(stderr)
+                .args(args)
                 .uid(interactor_exe_resources.uid)
                 .current_dir(interactor_exe_resources.exe_dir.path())
                 .spawn()
@@ -541,9 +556,9 @@ impl ExeResources {
         };
 
         let interactor_start_time = Instant::now();
-        match interactor_tmp_cgroup.add_task(interactor_p.id().unwrap() as u64) {
+        match interactor_cgroup.add_task(interactor_p.id().unwrap() as i32) {
             Err(result) => {
-                let _ = interactor_p.kill();
+                let _ = interactor_p.kill().await;
                 return RunWithInteractorResult::InternalError(result.to_string());
             }
             Ok(_) => {}
@@ -552,19 +567,23 @@ impl ExeResources {
         let mut p = {
             let stderr = match std::fs::File::create(self.stderr_path.as_str()) {
                 Err(result) => {
+                    let _ = interactor_p.kill().await;
                     return RunWithInteractorResult::InternalError(result.to_string());
                 }
                 Ok(result) => result,
             };
-            match tokio::process::Command::new("./exe.sh")
+            let (command, args) = turn_command_into_command_and_args(self.exe_command.as_str());
+            match tokio::process::Command::new(command)
                 .stdin(unsafe { std::fs::File::from_raw_fd(pipe_from_interactor_read) })
                 .stdout(unsafe { std::fs::File::from_raw_fd(pipe_to_interactor_write) })
                 .stderr(stderr)
+                .args(args)
                 .uid(self.uid)
                 .current_dir(self.exe_dir.path())
                 .spawn()
             {
                 Err(result) => {
+                    let _ = interactor_p.kill().await;
                     return RunWithInteractorResult::InternalError(result.to_string());
                 }
                 Ok(result) => result,
@@ -572,55 +591,161 @@ impl ExeResources {
         };
         let start_time = Instant::now();
 
-        match tmp_cgroup.add_task(p.id().unwrap() as u64) {
+        match cgroup.add_task(p.id().unwrap() as i32) {
             Err(result) => {
-                let _ = p.kill();
+                let _ = p.kill().await;
+                let _ = interactor_p.kill().await;
                 return RunWithInteractorResult::InternalError(result.to_string());
             }
             Ok(_) => {}
         };
 
-        let result = tokio::time::timeout(Duration::from(self.time_limit), p.wait()).await;
+        let result = tokio::time::timeout(Duration::from(time_limit), p.wait()).await;
         let runtime = TimeSpan::from(start_time.elapsed());
-        tmp_cgroup.kill_processes();
+        let _ = p.kill().await;
+        let is_oom = match cgroup.update_cgroup_and_controller_and_check_oom_kill() {
+            Err(result) => {
+                let _ = interactor_p.kill().await;
+                return RunWithInteractorResult::InternalError(result.to_string());
+            }
+            Ok(result) => result,
+        };
         let interactor_result = tokio::time::timeout(
-            Duration::from(interactor_exe_resources.time_limit),
+            Duration::from(interactor_extra_time_limit),
             interactor_p.wait(),
         )
         .await;
         let interactor_runtime = TimeSpan::from(interactor_start_time.elapsed());
-        interactor_tmp_cgroup.kill_processes();
-        let memory = MemorySize::from_bytes(tmp_cgroup.max_usage_in_bytes() as usize);
-        let interactor_memory =
-            MemorySize::from_bytes(interactor_tmp_cgroup.max_usage_in_bytes() as usize);
+        let _ = interactor_p.kill().await;
+        let interactor_is_oom =
+            match interactor_cgroup.update_cgroup_and_controller_and_check_oom_kill() {
+                Err(result) => {
+                    return RunWithInteractorResult::InternalError(result.to_string());
+                }
+                Ok(result) => result,
+            };
+        let memory = match cgroup.get_max_usage_in_bytes() {
+            Err(result) => {
+                return RunWithInteractorResult::InternalError(result.to_string());
+            }
+            Ok(result) => MemorySize::from_bytes(result as usize),
+        };
+        let interactor_memory = match interactor_cgroup.get_max_usage_in_bytes() {
+            Err(result) => {
+                return RunWithInteractorResult::InternalError(result.to_string());
+            }
+            Ok(result) => MemorySize::from_bytes(result as usize),
+        };
         let p_resource = ProcessResource {
             memory: memory,
             runtime: runtime,
             stdout: vec![],
-            stderr: match self.read_stderr().await {
-                Ok(result) => result,
-                Err(result) => return RunWithInteractorResult::InternalError(result),
+            stderr: {
+                match check_file_limit(self.stderr_path.as_str(), output_limit).await {
+                    Err(result) => {
+                        return RunWithInteractorResult::InternalError(result);
+                    }
+                    Ok(result) => {
+                        if result != "" {
+                            return RunWithInteractorResult::OutputLimitExceeded(
+                                ProcessResource {
+                                    memory: memory,
+                                    runtime: runtime,
+                                    stdout: vec![],
+                                    stderr: vec![],
+                                },
+                                ProcessResource {
+                                    memory: interactor_memory,
+                                    runtime: interactor_runtime,
+                                    stdout: vec![],
+                                    stderr: vec![],
+                                },
+                            );
+                        }
+                    }
+                }
+                match self.read_stderr().await {
+                    Ok(result) => result,
+                    Err(result) => return RunWithInteractorResult::InternalError(result),
+                }
             },
         };
         let interactor_resource = ProcessResource {
             memory: interactor_memory,
             runtime: interactor_runtime,
-            stdout: match interactor_exe_resources.read_interactorout().await {
-                Ok(result) => result,
-                Err(result) => return RunWithInteractorResult::InternalError(result),
+            stdout: {
+                match check_file_limit(
+                    interactor_exe_resources.interactorout_path.as_str(),
+                    output_limit,
+                )
+                .await
+                {
+                    Err(result) => {
+                        return RunWithInteractorResult::InternalError(result);
+                    }
+                    Ok(result) => {
+                        if result != "" {
+                            return RunWithInteractorResult::InteractorOutputLimitExceeded(
+                                ProcessResource {
+                                    memory: memory,
+                                    runtime: runtime,
+                                    stdout: vec![],
+                                    stderr: vec![],
+                                },
+                                ProcessResource {
+                                    memory: interactor_memory,
+                                    runtime: interactor_runtime,
+                                    stdout: vec![],
+                                    stderr: vec![],
+                                },
+                            );
+                        }
+                    }
+                }
+                match interactor_exe_resources.read_interactorout().await {
+                    Ok(result) => result,
+                    Err(result) => return RunWithInteractorResult::InternalError(result),
+                }
             },
-            stderr: match interactor_exe_resources.read_stderr().await {
-                Ok(result) => result,
-                Err(result) => return RunWithInteractorResult::InternalError(result),
+            stderr: {
+                match check_file_limit(interactor_exe_resources.stderr_path.as_str(), output_limit)
+                    .await
+                {
+                    Err(result) => {
+                        return RunWithInteractorResult::InternalError(result);
+                    }
+                    Ok(result) => {
+                        if result != "" {
+                            return RunWithInteractorResult::InteractorOutputLimitExceeded(
+                                ProcessResource {
+                                    memory: memory,
+                                    runtime: runtime,
+                                    stdout: vec![],
+                                    stderr: vec![],
+                                },
+                                ProcessResource {
+                                    memory: interactor_memory,
+                                    runtime: interactor_runtime,
+                                    stdout: vec![],
+                                    stderr: vec![],
+                                },
+                            );
+                        }
+                    }
+                }
+                match interactor_exe_resources.read_stderr().await {
+                    Ok(result) => result,
+                    Err(result) => return RunWithInteractorResult::InternalError(result),
+                }
             },
         };
-        if tmp_cgroup.oom_receiver_try_recv().is_ok() {
+        if is_oom {
             RunWithInteractorResult::MemoryLimitExceeded(p_resource, interactor_resource)
-        } else if result.is_err() || runtime > self.time_limit {
+        } else if result.is_err() || runtime > time_limit {
             RunWithInteractorResult::TimeLimitExceeded(p_resource, interactor_resource)
         } else if result.unwrap().is_ok_and(|status| status.success()) == false {
             RunWithInteractorResult::RuntimeError(p_resource, interactor_resource)
-        } else if interactor_tmp_cgroup.oom_receiver_try_recv().is_ok() {
+        } else if interactor_is_oom {
             RunWithInteractorResult::InteractorMemoryLimitExceeded(p_resource, interactor_resource)
         } else if interactor_result.is_err() {
             RunWithInteractorResult::InteractorTimeLimitExceeded(p_resource, interactor_resource)
@@ -643,19 +768,20 @@ pub struct ExeCode {
 
 #[cfg(target_os = "linux")]
 impl ExeCode {
-    pub async fn initial_exe_resources(
-        &self,
-        time_limit: TimeSpan,
-        memory_limit: MemorySize,
-        uid: u32,
-    ) -> InitExeResourceResult {
-        ExeResources::new(
-            uid,
-            &self.exe_files,
-            &self.compile_and_exe_setting,
-            &time_limit,
-            &memory_limit,
-        )
-        .await
+    pub async fn initial_exe_resources(&self, uid: u32) -> InitExeResourceResult {
+        ExeResources::new(uid, &self.exe_files, &self.compile_and_exe_setting).await
     }
+}
+
+async fn check_file_limit(path: &str, limit: MemorySize) -> Result<String, String> {
+    let metadata = match tokio::fs::metadata(path).await {
+        Err(result) => {
+            return Err(result.to_string());
+        }
+        Ok(result) => result,
+    };
+    if metadata.len() > limit.as_bytes() as u64 {
+        return Ok("Exceed Limit".to_string());
+    }
+    Ok(String::new())
 }

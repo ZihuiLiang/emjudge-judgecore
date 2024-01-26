@@ -51,6 +51,7 @@ async fn main() {
         MemorySize::from_gigabytes(1),
         interactor_uid,
         &input,
+        MemorySize::from_megabytes(10),
     )
     .await;
     println!("Result: {}", result);

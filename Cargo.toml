@@ -1,7 +1,9 @@
 [package]
 name = "emjudge-judgecore"
-version = "0.1.6"
+version = "0.1.7"
 edition = "2021"
+links = "cgroup"
+build = "build.rs"
 
 license = "MIT"
 description = "Emjudge-Judgecore is a comprehensive library designed for the evaluation and testing of executing programs against specific specifications. Offering a robust judging system, it provides the framework for running and assessing programs within defined criteria, making it an essential tool for comprehensive program evaluation and testing."
@@ -24,11 +26,30 @@ tempfile = "3.9.0"
 toml = "0.8.8"
 users = "0.11.0"
 uuid = { version = "1.6.1", features = ["v4", "fast-rng", "macro-diagnostics"] }
-tokio = {version = "1.35.1",features = ["rt", "process", "fs", "time", "io-std", "io-util", "macros"]}
+tokio = {version = "1.35.1",features = ["rt", "process", "fs", "time", "io-std", "io-util", "macros", "rt-multi-thread"]}
+
 
 [target.'cfg(target_os="linux")'.dependencies]
-cgroups-rs = "0.3.4"
+libc = "0.2.152"
 nix = { version = "0.27.1", features = ["process", "signal", "resource"] }
 
 [features]
 full = []
+
+[build-dependencies]
+pkg-config = "0.3.16"
+
+[dev-dependencies]
+criterion = "0.5.1"
+
+[[bench]]
+name = "only_run_benchmark"
+harness = false
+
+[[bench]]
+name = "run_and_eval_benchmark"
+harness = false
+
+[[bench]]
+name = "run_and_interact_benchmark"
+harness = false

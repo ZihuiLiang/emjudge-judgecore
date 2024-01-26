@@ -25,10 +25,11 @@ async fn main() {
             &script,
             compile_and_exe_settings.get_language("C++").unwrap(),
         ),
-        TimeSpan::from_milliseconds(500),
+        TimeSpan::from_milliseconds(1000),
         MemorySize::from_gigabytes(1),
         code_uid,
         &vec![],
+        MemorySize::from_megabytes(10),
     )
     .await;
     println!("Result: {}", result);

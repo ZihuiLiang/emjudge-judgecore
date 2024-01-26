@@ -46,6 +46,7 @@ async fn main() {
         code_uid,
         &tested_ans,
         &std_ans,
+        MemorySize::from_megabytes(10),
     )
     .await;
     println!("Result: {}", result);

@@ -49,6 +49,7 @@ async fn test_the_same(compile_and_exe_settings: &CompileAndExeSettings) {
         eval_uid,
         &tested_anses,
         &std_anses,
+        MemorySize::from_megabytes(10),
     )
     .await;
     println!("Results:");
@@ -99,6 +100,7 @@ async fn test_aplusb(compile_and_exe_settings: &CompileAndExeSettings) {
         eval_uid,
         &inputs,
         &outputs,
+        MemorySize::from_megabytes(10),
     )
     .await;
     println!("Results:");
@@ -146,6 +148,7 @@ async fn test_guess_number(compile_and_exe_settings: &CompileAndExeSettings) {
         MemorySize::from_gigabytes(1),
         interarctor_uid,
         &inputs,
+        MemorySize::from_megabytes(10),
     )
     .await;
     println!("Results:");
@@ -175,6 +178,7 @@ async fn test_mle(compile_and_exe_settings: &CompileAndExeSettings) {
         MemorySize::from_megabytes(512),
         code_uid,
         &inputs,
+        MemorySize::from_megabytes(10),
     )
     .await;
     println!("Results:");
@@ -204,6 +208,7 @@ async fn test_tle(compile_and_exe_settings: &CompileAndExeSettings) {
         MemorySize::from_megabytes(512),
         code_uid,
         &inputs,
+        MemorySize::from_megabytes(10),
     )
     .await;
     println!("Results:");

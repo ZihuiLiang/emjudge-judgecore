@@ -16,7 +16,6 @@ async fn main() {
     test_ruby().await;
     test_perl().await;
     test_cs().await;
-    test_objective_c().await;
     test_swift().await;
     test_go().await;
     test_javascript().await;
@@ -61,6 +60,7 @@ async fn test_cpp() {
         MemorySize::from_gigabytes(1),
         code_uid,
         &vec![],
+        MemorySize::from_megabytes(10),
     )
     .await;
     println!("Result: {}", result);
@@ -87,6 +87,7 @@ async fn test_c() {
         MemorySize::from_gigabytes(1),
         code_uid,
         &vec![],
+        MemorySize::from_megabytes(10),
     )
     .await;
     println!("Result: {}", result);
@@ -116,6 +117,7 @@ async fn test_java() {
         MemorySize::from_gigabytes(1),
         code_uid,
         &vec![],
+        MemorySize::from_megabytes(10),
     )
     .await;
     println!("Result: {}", result);
@@ -145,6 +147,7 @@ async fn test_python3() {
         MemorySize::from_gigabytes(1),
         code_uid,
         &vec![],
+        MemorySize::from_megabytes(10),
     )
     .await;
     println!("Result: {}", result);
@@ -174,6 +177,7 @@ async fn test_pypy3() {
         MemorySize::from_gigabytes(1),
         code_uid,
         &vec![],
+        MemorySize::from_megabytes(10),
     )
     .await;
     println!("Result: {}", result);
@@ -203,6 +207,7 @@ async fn test_python2() {
         MemorySize::from_gigabytes(1),
         code_uid,
         &vec![],
+        MemorySize::from_megabytes(10),
     )
     .await;
     println!("Result: {}", result);
@@ -232,6 +237,7 @@ async fn test_ruby() {
         MemorySize::from_gigabytes(1),
         code_uid,
         &vec![],
+        MemorySize::from_megabytes(10),
     )
     .await;
     println!("Result: {}", result);
@@ -261,6 +267,7 @@ async fn test_perl() {
         MemorySize::from_gigabytes(1),
         code_uid,
         &vec![],
+        MemorySize::from_megabytes(10),
     )
     .await;
     println!("Result: {}", result);
@@ -290,37 +297,7 @@ async fn test_cs() {
         MemorySize::from_gigabytes(1),
         code_uid,
         &vec![],
-    )
-    .await;
-    println!("Result: {}", result);
-}
-
-async fn test_objective_c() {
-    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(
-        "examples/compile_and_exe_settings.toml",
-        config::FileFormat::Toml,
-    )
-    .unwrap();
-    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
-    println!("Test Objective-C:");
-    let mut script = vec![];
-    tokio::fs::File::open("examples/programs/helloworld.m")
-        .await
-        .unwrap()
-        .read_to_end(&mut script)
-        .await
-        .unwrap();
-    let result = OnlyRun::single(
-        &RawCode::new(
-            &script,
-            compile_and_exe_settings
-                .get_language("Objective-C")
-                .unwrap(),
-        ),
-        TimeSpan::from_seconds(1),
-        MemorySize::from_gigabytes(1),
-        code_uid,
-        &vec![],
+        MemorySize::from_megabytes(10),
     )
     .await;
     println!("Result: {}", result);
@@ -350,6 +327,7 @@ async fn test_swift() {
         MemorySize::from_gigabytes(1),
         code_uid,
         &vec![],
+        MemorySize::from_megabytes(10),
     )
     .await;
     println!("Result: {}", result);
@@ -379,6 +357,7 @@ async fn test_go() {
         MemorySize::from_gigabytes(1),
         code_uid,
         &vec![],
+        MemorySize::from_megabytes(10),
     )
     .await;
     println!("Result: {}", result);
@@ -408,6 +387,7 @@ async fn test_javascript() {
         MemorySize::from_gigabytes(1),
         code_uid,
         &vec![],
+        MemorySize::from_megabytes(10),
     )
     .await;
     println!("Result: {}", result);
@@ -437,6 +417,7 @@ async fn test_rust() {
         MemorySize::from_gigabytes(1),
         code_uid,
         &vec![],
+        MemorySize::from_megabytes(10),
     )
     .await;
     println!("Result: {}", result);
@@ -466,6 +447,7 @@ async fn test_kotlin() {
         MemorySize::from_gigabytes(1),
         code_uid,
         &vec![],
+        MemorySize::from_megabytes(10),
     )
     .await;
     println!("Result: {}", result);
@@ -495,6 +477,7 @@ async fn test_julia() {
         MemorySize::from_gigabytes(1),
         code_uid,
         &vec![],
+        MemorySize::from_megabytes(10),
     )
     .await;
     println!("Result: {}", result);
@@ -524,6 +507,7 @@ async fn test_fortran() {
         MemorySize::from_gigabytes(1),
         code_uid,
         &vec![],
+        MemorySize::from_megabytes(10),
     )
     .await;
     println!("Result: {}", result);
@@ -553,6 +537,7 @@ async fn test_lua() {
         MemorySize::from_gigabytes(1),
         code_uid,
         &vec![],
+        MemorySize::from_megabytes(10),
     )
     .await;
     println!("Result: {}", result);
@@ -582,6 +567,7 @@ async fn test_php() {
         MemorySize::from_gigabytes(1),
         code_uid,
         &vec![],
+        MemorySize::from_megabytes(10),
     )
     .await;
     println!("Result: {}", result);
@@ -611,6 +597,7 @@ async fn test_smalltalk() {
         MemorySize::from_gigabytes(1),
         code_uid,
         &vec![],
+        MemorySize::from_megabytes(10),
     )
     .await;
     println!("Result: {}", result);
@@ -640,6 +627,7 @@ async fn test_ocaml() {
         MemorySize::from_gigabytes(1),
         code_uid,
         &vec![],
+        MemorySize::from_megabytes(10),
     )
     .await;
     println!("Result: {}", result);
@@ -669,6 +657,7 @@ async fn test_cobol() {
         MemorySize::from_gigabytes(1),
         code_uid,
         &vec![],
+        MemorySize::from_megabytes(10),
     )
     .await;
     println!("Result: {}", result);
@@ -698,6 +687,7 @@ async fn test_ada() {
         MemorySize::from_gigabytes(1),
         code_uid,
         &vec![],
+        MemorySize::from_megabytes(10),
     )
     .await;
     println!("Result: {}", result);
@@ -729,6 +719,7 @@ async fn test_common_lisp() {
         MemorySize::from_gigabytes(1),
         code_uid,
         &vec![],
+        MemorySize::from_megabytes(10),
     )
     .await;
     println!("Result: {}", result);
@@ -758,6 +749,7 @@ async fn test_scala() {
         MemorySize::from_gigabytes(1),
         code_uid,
         &vec![],
+        MemorySize::from_megabytes(10),
     )
     .await;
     println!("Result: {}", result);
@@ -787,6 +779,7 @@ async fn test_tcl() {
         MemorySize::from_gigabytes(1),
         code_uid,
         &vec![],
+        MemorySize::from_megabytes(10),
     )
     .await;
     println!("Result: {}", result);
@@ -816,6 +809,7 @@ async fn test_octave() {
         MemorySize::from_gigabytes(1),
         code_uid,
         &vec![],
+        MemorySize::from_megabytes(10),
     )
     .await;
     println!("Result: {}", result);
@@ -845,6 +839,7 @@ async fn test_pypy2() {
         MemorySize::from_gigabytes(1),
         code_uid,
         &vec![],
+        MemorySize::from_megabytes(10),
     )
     .await;
     println!("Result: {}", result);
