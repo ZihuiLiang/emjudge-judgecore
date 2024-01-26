@@ -205,9 +205,9 @@ impl Serialize for TimeSpan {
     where
         S: Serializer,
     {
-        if self.0 % 10 == 0 {
-            if self.0 % (10 * 60) == 0 {
-                if self.0 % (10 * 60 * 60) == 0 {
+        if self.0 % 1000 == 0 {
+            if self.0 % (1000 * 60) == 0 {
+                if self.0 % (1000 * 60 * 60) == 0 {
                     serializer.serialize_str(format!("{}h", self.as_hours()).as_str())
                 } else {
                     serializer.serialize_str(format!("{}m", self.as_minutes()).as_str())
@@ -246,9 +246,9 @@ impl<'de> Deserialize<'de> for TimeSpan {
                     value.split_at(value.trim_end_matches(|c| char::is_alphabetic(c)).len());
                 let ms = match unit.trim() {
                     "ms" => 1,
-                    "s" => 10,
-                    "m" => 60 * 10,
-                    "h" => 60 * 60 * 10,
+                    "s" => 1000,
+                    "m" => 60 * 1000,
+                    "h" => 60 * 60 * 1000,
                     _ => return Err(serde::de::Error::custom("Invalid TimeSpan unit")),
                 };
 
