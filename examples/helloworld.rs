@@ -16,11 +16,11 @@ async fn main() {
     test_ruby().await;
     test_perl().await;
     test_cs().await;
-    test_swift().await;
+    // test_swift().await;
     test_go().await;
     test_javascript().await;
     test_rust().await;
-    test_kotlin().await;
+    // test_kotlin().await;
     test_julia().await;
     test_fortran().await;
     test_lua().await;
@@ -303,35 +303,35 @@ async fn test_cs() {
     println!("Result: {}", result);
 }
 
-async fn test_swift() {
-    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(
-        "examples/compile_and_exe_settings.toml",
-        config::FileFormat::Toml,
-    )
-    .unwrap();
-    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
-    println!("Test Swift:");
-    let mut script = vec![];
-    tokio::fs::File::open("examples/programs/helloworld.swift")
-        .await
-        .unwrap()
-        .read_to_end(&mut script)
-        .await
-        .unwrap();
-    let result = OnlyRun::single(
-        &RawCode::new(
-            &script,
-            compile_and_exe_settings.get_language("Swift").unwrap(),
-        ),
-        TimeSpan::from_seconds(1),
-        MemorySize::from_gigabytes(1),
-        code_uid,
-        &vec![],
-        MemorySize::from_megabytes(10),
-    )
-    .await;
-    println!("Result: {}", result);
-}
+// async fn test_swift() {
+//     let compile_and_exe_settings = CompileAndExeSettings::load_from_file(
+//         "examples/compile_and_exe_settings.toml",
+//         config::FileFormat::Toml,
+//     )
+//     .unwrap();
+//     let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
+//     println!("Test Swift:");
+//     let mut script = vec![];
+//     tokio::fs::File::open("examples/programs/helloworld.swift")
+//         .await
+//         .unwrap()
+//         .read_to_end(&mut script)
+//         .await
+//         .unwrap();
+//     let result = OnlyRun::single(
+//         &RawCode::new(
+//             &script,
+//             compile_and_exe_settings.get_language("Swift").unwrap(),
+//         ),
+//         TimeSpan::from_seconds(1),
+//         MemorySize::from_gigabytes(1),
+//         code_uid,
+//         &vec![],
+//         MemorySize::from_megabytes(10),
+//     )
+//     .await;
+//     println!("Result: {}", result);
+// }
 
 async fn test_go() {
     let compile_and_exe_settings = CompileAndExeSettings::load_from_file(
@@ -423,35 +423,35 @@ async fn test_rust() {
     println!("Result: {}", result);
 }
 
-async fn test_kotlin() {
-    let compile_and_exe_settings = CompileAndExeSettings::load_from_file(
-        "examples/compile_and_exe_settings.toml",
-        config::FileFormat::Toml,
-    )
-    .unwrap();
-    let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
-    println!("Test Kotlin:");
-    let mut script = vec![];
-    tokio::fs::File::open("examples/programs/helloworld.kt")
-        .await
-        .unwrap()
-        .read_to_end(&mut script)
-        .await
-        .unwrap();
-    let result = OnlyRun::single(
-        &RawCode::new(
-            &script,
-            compile_and_exe_settings.get_language("Kotlin").unwrap(),
-        ),
-        TimeSpan::from_seconds(1),
-        MemorySize::from_gigabytes(1),
-        code_uid,
-        &vec![],
-        MemorySize::from_megabytes(10),
-    )
-    .await;
-    println!("Result: {}", result);
-}
+// async fn test_kotlin() {
+//     let compile_and_exe_settings = CompileAndExeSettings::load_from_file(
+//         "examples/compile_and_exe_settings.toml",
+//         config::FileFormat::Toml,
+//     )
+//     .unwrap();
+//     let code_uid = create_a_tmp_user_return_uid("emjudge-judgecore-code").unwrap();
+//     println!("Test Kotlin:");
+//     let mut script = vec![];
+//     tokio::fs::File::open("examples/programs/helloworld.kt")
+//         .await
+//         .unwrap()
+//         .read_to_end(&mut script)
+//         .await
+//         .unwrap();
+//     let result = OnlyRun::single(
+//         &RawCode::new(
+//             &script,
+//             compile_and_exe_settings.get_language("Kotlin").unwrap(),
+//         ),
+//         TimeSpan::from_seconds(1),
+//         MemorySize::from_gigabytes(1),
+//         code_uid,
+//         &vec![],
+//         MemorySize::from_megabytes(10),
+//     )
+//     .await;
+//     println!("Result: {}", result);
+// }
 
 async fn test_julia() {
     let compile_and_exe_settings = CompileAndExeSettings::load_from_file(

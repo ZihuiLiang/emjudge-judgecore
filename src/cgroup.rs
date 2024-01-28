@@ -1,4 +1,4 @@
-use crate::quantity::MemorySize;
+use crate::{quantity::MemorySize, settings::check_admin_privilege};
 
 extern crate libc;
 extern "C" {
@@ -52,6 +52,9 @@ pub struct Cgroup {
 
 impl Cgroup {
     pub fn new(cgroup_name: &str, memory_limit: MemorySize) -> Result<Self, String> {
+        if check_admin_privilege() == false {
+            return Err("check_admin_privilege() failed".to_string());
+        }
         unsafe {
             if cgroup_init() != 0 {
                 return Err("cgroup_init() failed".to_string());

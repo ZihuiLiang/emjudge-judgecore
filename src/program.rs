@@ -3,7 +3,7 @@ use crate::quantity::{MemorySize, ProcessResource, TimeSpan};
 use crate::result::{
     CompileResult, InitExeResourceResult, RunToEndResult, RunWithInteractorResult,
 };
-use crate::settings::CompileAndExeSetting;
+use crate::settings::{check_admin_privilege, CompileAndExeSetting};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::os::fd::FromRawFd;
@@ -153,7 +153,7 @@ impl ExeResources {
         exe_files: &HashMap<String, Vec<u8>>,
         compile_and_exe_setting: &CompileAndExeSetting,
     ) -> InitExeResourceResult {
-        if tokio::fs::read_to_string("/etc/sudoers").await.is_err() {
+        if check_admin_privilege() == false {
             return InitExeResourceResult::PermissionDenied;
         }
         let id = format!(
@@ -252,8 +252,7 @@ impl ExeResources {
             }
             all_file_path_vec.push(exe_code_path.clone());
         }
-        match tokio::process::Command::new("sudo")
-            .arg("chown")
+        match tokio::process::Command::new("chown")
             .arg(format!("{}:{}", uid, uid))
             .args(&all_file_path_vec)
             .spawn()
