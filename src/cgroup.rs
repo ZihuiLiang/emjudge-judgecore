@@ -188,10 +188,10 @@ impl Cgroup {
     pub fn get_max_usage_in_bytes(&mut self) -> Result<u64, String> {
         let mut value: u64 = 0;
         let memory_max_usage_in_bytes_string = if self.is_v2 {
-            std::
+            std::ffi::CString::new("memory.peak").unwrap()
         } else {
-            std::ffi::CString::new("memory.max_usage_in_bytes").unwrap();
-        }
+            std::ffi::CString::new("memory.max_usage_in_bytes").unwrap()
+        };
         let ret = unsafe {
             cgroup_get_value_uint64(
                 self.mem_controller,
@@ -206,8 +206,11 @@ impl Cgroup {
     }
 
     pub fn reset_max_usage_in_bytes(&mut self) -> Result<(), String> {
-        let memory_max_usage_in_bytes_string =
-            std::ffi::CString::new("memory.max_usage_in_bytes").unwrap();
+        let memory_max_usage_in_bytes_string = if self.is_v2 {
+            std::ffi::CString::new("memory.peak").unwrap()
+        } else {
+            std::ffi::CString::new("memory.max_usage_in_bytes").unwrap()
+        };
         let ret = unsafe {
             cgroup_set_value_uint64(
                 self.mem_controller,
