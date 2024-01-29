@@ -48,7 +48,7 @@ pub struct Cgroup {
     cgroup_name: std::ffi::CString,
     mem_controller: *mut libc::c_void,
     cgroup: *mut libc::c_void,
-    oom_kill: u64,
+    oom: u64,
     is_v2: bool,
 }
 
@@ -64,7 +64,7 @@ impl Cgroup {
         }
         let cgroup_name = std::ffi::CString::new(cgroup_name).unwrap();
         let mut cgroup = unsafe { cgroup_new_cgroup(cgroup_name.as_ptr()) };
-        let is_v2 = unsafe { cgroup_setup_mode() } == 2;
+        let is_v2 = unsafe { cgroup_setup_mode() } == 3;
         if cgroup.is_null() {
             return Err("cgroup_new_cgroup() failed".to_string());
         }
@@ -95,8 +95,8 @@ impl Cgroup {
             }
             return Err("cgroup_set_value_uint64() failed".to_string());
         }
+
         let ret = unsafe { cgroup_create_cgroup(cgroup, 0) };
-        println!("ret: {}", ret);
         if ret != 0 {
             unsafe {
                 cgroup_free(&mut cgroup);
@@ -107,12 +107,12 @@ impl Cgroup {
             cgroup_name: cgroup_name,
             mem_controller: mem_controller,
             cgroup: cgroup,
-            oom_kill: 0,
+            oom: 0,
             is_v2: is_v2,
         };
         result.update_cgroup_and_controller()?;
-        if result.update_oom_kill().is_err() {
-            return Err("update_oom_kill() failed".to_string());
+        if result.update_oom().is_err() {
+            return Err("update_oom() failed".to_string());
         }
         Ok(result)
     }
@@ -152,37 +152,61 @@ impl Cgroup {
         Ok(())
     }
 
-    pub fn update_oom_kill(&mut self) -> Result<(), String> {
+    pub fn update_oom(&mut self) -> Result<(), String> {
         let mut value: *mut libc::c_char = std::ptr::null_mut();
-        let memory_oom_control_string = std::ffi::CString::new("memory.oom_control").unwrap();
-        let ret = unsafe {
-            cgroup_get_value_string(
-                self.mem_controller,
-                memory_oom_control_string.as_ptr(),
-                &mut value,
-            )
-        };
-        if ret != 0 {
-            return Err("cgroup_get_value_string() failed".to_string());
-        }
-        let string_value = unsafe { std::ffi::CString::from_raw(value) }
+        if self.is_v2 {
+            let memory_oom_control_string = std::ffi::CString::new("memory.events").unwrap();
+            let ret = unsafe {
+                cgroup_get_value_string(
+                    self.mem_controller,
+                    memory_oom_control_string.as_ptr(),
+                    &mut value,
+                )
+            };
+            if ret != 0 {
+                return Err("cgroup_get_value_string() failed".to_string());
+            }
+            let string_value = unsafe { std::ffi::CString::from_raw(value) }
             .into_string()
             .unwrap();
-        let value_vec = string_value.split_whitespace().collect::<Vec<&str>>();
-        for i in 0..value_vec.len() {
-            if value_vec[i] == "oom_kill" {
-                self.oom_kill = value_vec[i + 1].parse::<u64>().unwrap();
-                break;
+            let value_vec = string_value.split_whitespace().collect::<Vec<&str>>();
+            for i in 0..value_vec.len() {
+                if value_vec[i] == "oom" {
+                    self.oom = value_vec[i + 1].parse::<u64>().unwrap();
+                    break;
+                }
             }
-        }
+        } else {
+            let memory_oom_control_string = std::ffi::CString::new("memory.oom_control").unwrap();
+            let ret = unsafe {
+                cgroup_get_value_string(
+                    self.mem_controller,
+                    memory_oom_control_string.as_ptr(),
+                    &mut value,
+                )
+            };
+            if ret != 0 {
+                return Err("cgroup_get_value_string() failed".to_string());
+            }
+            let string_value = unsafe { std::ffi::CString::from_raw(value) }
+            .into_string()
+            .unwrap();
+            let value_vec = string_value.split_whitespace().collect::<Vec<&str>>();
+            for i in 0..value_vec.len() {
+                if value_vec[i] == "oom_kill" {
+                    self.oom = value_vec[i + 1].parse::<u64>().unwrap();
+                    break;
+                }
+            }
+        } 
         Ok(())
     }
 
-    pub fn update_cgroup_and_controller_and_check_oom_kill(&mut self) -> Result<bool, String> {
-        let last_oom_kill = self.oom_kill;
+    pub fn update_cgroup_and_controller_and_check_oom(&mut self) -> Result<bool, String> {
+        let last_oom = self.oom;
         self.update_cgroup_and_controller()?;
-        self.update_oom_kill()?;
-        Ok(last_oom_kill != self.oom_kill)
+        self.update_oom()?;
+        Ok(last_oom != self.oom)
     }
 
     pub fn get_max_usage_in_bytes(&mut self) -> Result<u64, String> {

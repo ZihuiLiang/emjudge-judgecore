@@ -401,7 +401,8 @@ impl ExeResources {
                 let result = tokio::time::timeout(Duration::from(time_limit), p.wait()).await;
                 let runtime = TimeSpan::from(start_time.elapsed());
                 let _ = p.kill().await;
-                let is_oom = match cgroup.update_cgroup_and_controller_and_check_oom_kill() {
+                let _ = p.wait().await;
+                let is_oom = match cgroup.update_cgroup_and_controller_and_check_oom() {
                     Err(result) => {
                         return RunToEndResult::InternalError(result.to_string());
                     }
@@ -617,7 +618,8 @@ impl ExeResources {
         let result = tokio::time::timeout(Duration::from(time_limit), p.wait()).await;
         let runtime = TimeSpan::from(start_time.elapsed());
         let _ = p.kill().await;
-        let is_oom = match cgroup.update_cgroup_and_controller_and_check_oom_kill() {
+        let _ = p.wait().await;
+        let is_oom = match cgroup.update_cgroup_and_controller_and_check_oom() {
             Err(result) => {
                 let _ = interactor_p.kill().await;
                 return RunWithInteractorResult::InternalError(result.to_string());
@@ -631,8 +633,9 @@ impl ExeResources {
         .await;
         let interactor_runtime = TimeSpan::from(interactor_start_time.elapsed());
         let _ = interactor_p.kill().await;
+        let _ = interactor_p.wait().await;
         let interactor_is_oom =
-            match interactor_cgroup.update_cgroup_and_controller_and_check_oom_kill() {
+            match interactor_cgroup.update_cgroup_and_controller_and_check_oom() {
                 Err(result) => {
                     return RunWithInteractorResult::InternalError(result.to_string());
                 }

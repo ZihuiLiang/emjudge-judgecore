@@ -29,7 +29,7 @@ async fn main() {
         MemorySize::from_megabytes(1),
         code_uid,
         &vec![],
-        MemorySize::from_megabytes(10),
+        MemorySize::from_megabytes(1),
     )
     .await;
     println!("Result: {}", result);
