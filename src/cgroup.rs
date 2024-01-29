@@ -167,8 +167,8 @@ impl Cgroup {
                 return Err("cgroup_get_value_string() failed".to_string());
             }
             let string_value = unsafe { std::ffi::CString::from_raw(value) }
-            .into_string()
-            .unwrap();
+                .into_string()
+                .unwrap();
             let value_vec = string_value.split_whitespace().collect::<Vec<&str>>();
             for i in 0..value_vec.len() {
                 if value_vec[i] == "oom" {
@@ -189,8 +189,8 @@ impl Cgroup {
                 return Err("cgroup_get_value_string() failed".to_string());
             }
             let string_value = unsafe { std::ffi::CString::from_raw(value) }
-            .into_string()
-            .unwrap();
+                .into_string()
+                .unwrap();
             let value_vec = string_value.split_whitespace().collect::<Vec<&str>>();
             for i in 0..value_vec.len() {
                 if value_vec[i] == "oom_kill" {
@@ -198,7 +198,7 @@ impl Cgroup {
                     break;
                 }
             }
-        } 
+        }
         Ok(())
     }
 

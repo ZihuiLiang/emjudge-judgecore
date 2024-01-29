@@ -3,27 +3,25 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tempfile::TempDir;
 
-#[cfg(any(feature="compile", feature="run"))]
-use tokio::io::{AsyncWriteExt, AsyncReadExt};
-#[cfg(feature="compile")]
+#[cfg(feature = "compile")]
 use crate::result::CompileResult;
-#[cfg(feature="compile")]
+#[cfg(feature = "compile")]
 use std::process::Stdio;
+#[cfg(any(feature = "compile", feature = "run"))]
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-
-#[cfg(feature="run")]
+#[cfg(feature = "run")]
 use crate::{
-    quantity::{MemorySize, TimeSpan, ProcessResource},
-    result::{InitExeResourceResult, RunToEndResult, RunWithInteractorResult},
     cgroup::Cgroup,
+    quantity::{MemorySize, ProcessResource, TimeSpan},
+    result::{InitExeResourceResult, RunToEndResult, RunWithInteractorResult},
 };
-#[cfg(feature="run")]
+#[cfg(feature = "run")]
 use std::{
-    os::unix::fs::PermissionsExt,
     os::fd::FromRawFd,
+    os::unix::fs::PermissionsExt,
     time::{Duration, Instant},
 };
-
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RawCode {
@@ -41,7 +39,6 @@ pub fn turn_command_into_command_and_args(command: &str) -> (String, Vec<String>
     (result_command, result_args)
 }
 
-
 impl RawCode {
     pub fn new(code: &Vec<u8>, compile_and_exe_setting: &CompileAndExeSetting) -> Self {
         Self {
@@ -50,7 +47,7 @@ impl RawCode {
         }
     }
 
-    #[cfg(feature="compile")]
+    #[cfg(feature = "compile")]
     pub async fn compile(&self) -> CompileResult {
         if self.compile_and_exe_setting.compile_command.is_empty() {
             if self.compile_and_exe_setting.exe_files.is_empty()
@@ -160,8 +157,7 @@ pub struct ExeResources {
     pub interactorout_path: String,
 }
 
-
-#[cfg(feature="run")]
+#[cfg(feature = "run")]
 impl ExeResources {
     async fn new(
         uid: u32,
@@ -634,13 +630,13 @@ impl ExeResources {
         let interactor_runtime = TimeSpan::from(interactor_start_time.elapsed());
         let _ = interactor_p.kill().await;
         let _ = interactor_p.wait().await;
-        let interactor_is_oom =
-            match interactor_cgroup.update_cgroup_and_controller_and_check_oom() {
-                Err(result) => {
-                    return RunWithInteractorResult::InternalError(result.to_string());
-                }
-                Ok(result) => result,
-            };
+        let interactor_is_oom = match interactor_cgroup.update_cgroup_and_controller_and_check_oom()
+        {
+            Err(result) => {
+                return RunWithInteractorResult::InternalError(result.to_string());
+            }
+            Ok(result) => result,
+        };
         let memory = match cgroup.get_max_usage_in_bytes() {
             Err(result) => {
                 return RunWithInteractorResult::InternalError(result.to_string());
@@ -783,16 +779,14 @@ pub struct ExeCode {
     pub compile_and_exe_setting: CompileAndExeSetting,
 }
 
-
-#[cfg(feature="run")]
+#[cfg(feature = "run")]
 impl ExeCode {
     pub async fn initial_exe_resources(&self, uid: u32) -> InitExeResourceResult {
         ExeResources::new(uid, &self.exe_files, &self.compile_and_exe_setting).await
     }
 }
 
-
-#[cfg(feature="run")]
+#[cfg(feature = "run")]
 async fn check_file_limit(path: &str, limit: MemorySize) -> Result<String, String> {
     let metadata = match tokio::fs::metadata(path).await {
         Err(result) => {

@@ -231,4 +231,3 @@ pub fn create_a_tmp_user_return_uid(user_name: &str) -> Result<u32, ()> {
         Some(result) => Ok(result.uid()),
     }
 }
-
