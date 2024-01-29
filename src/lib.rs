@@ -1,6 +1,12 @@
+#[cfg(feature = "cgroup")]
 pub mod cgroup;
+#[cfg(feature = "program")]
 pub mod program;
+#[cfg(feature = "quantity")]
 pub mod quantity;
+#[cfg(feature = "result")]
 pub mod result;
+#[cfg(feature = "settings")]
 pub mod settings;
+#[cfg(feature = "test")]
 pub mod test;

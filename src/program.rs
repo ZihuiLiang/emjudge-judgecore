@@ -1,23 +1,34 @@
-use crate::cgroup::Cgroup;
-use crate::quantity::{MemorySize, ProcessResource, TimeSpan};
-use crate::result::{
-    CompileResult, InitExeResourceResult, RunToEndResult, RunWithInteractorResult,
-};
-use crate::settings::{check_admin_privilege, CompileAndExeSetting};
+use crate::settings::CompileAndExeSetting;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::os::fd::FromRawFd;
-use std::os::unix::fs::PermissionsExt;
-use std::process::Stdio;
-use std::time::Duration;
 use tempfile::TempDir;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::time::Instant;
 
-#[derive(Debug)]
+#[cfg(any(feature="compile", feature="run"))]
+use tokio::io::{AsyncWriteExt, AsyncReadExt};
+#[cfg(feature="compile")]
+use crate::result::CompileResult;
+#[cfg(feature="compile")]
+use std::process::Stdio;
+
+
+#[cfg(feature="run")]
+use crate::{
+    quantity::{MemorySize, TimeSpan, ProcessResource},
+    result::{InitExeResourceResult, RunToEndResult, RunWithInteractorResult},
+    cgroup::Cgroup,
+};
+#[cfg(feature="run")]
+use std::{
+    os::unix::fs::PermissionsExt,
+    os::fd::FromRawFd,
+    time::{Duration, Instant},
+};
+
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RawCode {
-    code: Vec<u8>,
-    compile_and_exe_setting: CompileAndExeSetting,
+    pub code: Vec<u8>,
+    pub compile_and_exe_setting: CompileAndExeSetting,
 }
 
 pub fn turn_command_into_command_and_args(command: &str) -> (String, Vec<String>) {
@@ -30,6 +41,7 @@ pub fn turn_command_into_command_and_args(command: &str) -> (String, Vec<String>
     (result_command, result_args)
 }
 
+
 impl RawCode {
     pub fn new(code: &Vec<u8>, compile_and_exe_setting: &CompileAndExeSetting) -> Self {
         Self {
@@ -37,6 +49,8 @@ impl RawCode {
             compile_and_exe_setting: compile_and_exe_setting.clone(),
         }
     }
+
+    #[cfg(feature="compile")]
     pub async fn compile(&self) -> CompileResult {
         if self.compile_and_exe_setting.compile_command.is_empty() {
             if self.compile_and_exe_setting.exe_files.is_empty()
@@ -136,17 +150,18 @@ impl RawCode {
 
 #[derive(Debug)]
 pub struct ExeResources {
-    uid: u32,
-    exe_dir: TempDir,
-    exe_command: String,
-    stdin_path: String,
-    stdout_path: String,
-    stderr_path: String,
-    interactorin_path: String,
-    interactorout_path: String,
+    pub uid: u32,
+    pub exe_dir: TempDir,
+    pub exe_command: String,
+    pub stdin_path: String,
+    pub stdout_path: String,
+    pub stderr_path: String,
+    pub interactorin_path: String,
+    pub interactorout_path: String,
 }
 
-#[cfg(target_os = "linux")]
+
+#[cfg(feature="run")]
 impl ExeResources {
     async fn new(
         uid: u32,
@@ -761,17 +776,20 @@ impl ExeResources {
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct ExeCode {
-    exe_files: HashMap<String, Vec<u8>>,
-    compile_and_exe_setting: CompileAndExeSetting,
+    pub exe_files: HashMap<String, Vec<u8>>,
+    pub compile_and_exe_setting: CompileAndExeSetting,
 }
 
-#[cfg(target_os = "linux")]
+
+#[cfg(feature="run")]
 impl ExeCode {
     pub async fn initial_exe_resources(&self, uid: u32) -> InitExeResourceResult {
         ExeResources::new(uid, &self.exe_files, &self.compile_and_exe_setting).await
     }
 }
 
+
+#[cfg(feature="run")]
 async fn check_file_limit(path: &str, limit: MemorySize) -> Result<String, String> {
     let metadata = match tokio::fs::metadata(path).await {
         Err(result) => {
@@ -783,4 +801,8 @@ async fn check_file_limit(path: &str, limit: MemorySize) -> Result<String, Strin
         return Ok("Exceed Limit".to_string());
     }
     Ok(String::new())
+}
+
+pub fn check_admin_privilege() -> bool {
+    users::get_current_uid() == 0
 }

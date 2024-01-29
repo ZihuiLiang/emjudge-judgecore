@@ -12,7 +12,9 @@ description = "Emjudge-Judgecore is a comprehensive library designed for the eva
 name = "emjudge_judgecore"
 path = "src/lib.rs"
 
-[dependencies]
+[target.'cfg(target_os="linux")'.dependencies]
+libc = "0.2.152"
+nix = { version = "0.27.1", features = ["process", "signal", "resource"] }
 config = "0.13.4"
 json5 = "0.4.1"
 psutil = "3.3.0"
@@ -26,15 +28,24 @@ tempfile = "3.9.0"
 toml = "0.8.8"
 users = "0.11.0"
 uuid = { version = "1.6.1", features = ["v4", "fast-rng", "macro-diagnostics"] }
-tokio = {version = "1.35.1",features = ["rt", "process", "fs", "time", "io-std", "io-util", "macros", "rt-multi-thread"]}
 
+[target.'cfg(target_os="linux")'.dependencies.tokio]
+version = "1.35.1"
+features = ["rt", "process", "fs", "time", "io-std", "io-util", "macros", "rt-multi-thread"]
+optional = true
 
-[target.'cfg(target_os="linux")'.dependencies]
-libc = "0.2.152"
-nix = { version = "0.27.1", features = ["process", "signal", "resource"] }
 
 [features]
-full = []
+quantity = []
+settings = []
+cgroup = ["quantity"]
+program = ["settings"]
+result = ["program", "quantity"]
+compile = ["result", "tokio"]
+run = ["result", "cgroup", "tokio"]
+test = ["run", "compile"]
+default = ["result"]
+full = ["test"]
 
 [build-dependencies]
 pkg-config = "0.3.16"

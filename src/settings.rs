@@ -232,6 +232,3 @@ pub fn create_a_tmp_user_return_uid(user_name: &str) -> Result<u32, ()> {
     }
 }
 
-pub fn check_admin_privilege() -> bool {
-    users::get_current_uid() == 0
-}

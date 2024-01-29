@@ -1,4 +1,4 @@
-use crate::{quantity::MemorySize, settings::check_admin_privilege};
+use crate::quantity::MemorySize;
 
 extern crate libc;
 extern "C" {
@@ -41,6 +41,7 @@ extern "C" {
     fn cgroup_attach_task_pid(cgroup: *mut libc::c_void, pid: libc::pid_t) -> libc::c_int;
     fn cgroup_free(cgroup: *mut *mut libc::c_void);
     fn cgroup_delete_cgroup_ext(cgroup: *mut libc::c_void, flags: libc::c_int) -> libc::c_int;
+    fn cgroup_setup_mode() -> libc::c_int;
 }
 
 pub struct Cgroup {
@@ -48,6 +49,7 @@ pub struct Cgroup {
     mem_controller: *mut libc::c_void,
     cgroup: *mut libc::c_void,
     oom_kill: u64,
+    is_v2: bool,
 }
 
 impl Cgroup {
@@ -62,6 +64,7 @@ impl Cgroup {
         }
         let cgroup_name = std::ffi::CString::new(cgroup_name).unwrap();
         let mut cgroup = unsafe { cgroup_new_cgroup(cgroup_name.as_ptr()) };
+        let is_v2 = unsafe { cgroup_setup_mode() } == 2;
         if cgroup.is_null() {
             return Err("cgroup_new_cgroup() failed".to_string());
         }
@@ -74,7 +77,11 @@ impl Cgroup {
             return Err("cgroup_add_controller() failed".to_string());
         }
 
-        let memory_limit_in_bytes_string = std::ffi::CString::new("memory.limit_in_bytes").unwrap();
+        let memory_limit_in_bytes_string = if is_v2 {
+            std::ffi::CString::new("memory.max").unwrap()
+        } else {
+            std::ffi::CString::new("memory.limit_in_bytes").unwrap()
+        };
         let ret = unsafe {
             cgroup_add_value_uint64(
                 mem_controller,
@@ -89,6 +96,7 @@ impl Cgroup {
             return Err("cgroup_set_value_uint64() failed".to_string());
         }
         let ret = unsafe { cgroup_create_cgroup(cgroup, 0) };
+        println!("ret: {}", ret);
         if ret != 0 {
             unsafe {
                 cgroup_free(&mut cgroup);
@@ -100,6 +108,7 @@ impl Cgroup {
             mem_controller: mem_controller,
             cgroup: cgroup,
             oom_kill: 0,
+            is_v2: is_v2,
         };
         result.update_cgroup_and_controller()?;
         if result.update_oom_kill().is_err() {
@@ -178,8 +187,11 @@ impl Cgroup {
 
     pub fn get_max_usage_in_bytes(&mut self) -> Result<u64, String> {
         let mut value: u64 = 0;
-        let memory_max_usage_in_bytes_string =
+        let memory_max_usage_in_bytes_string = if self.is_v2 {
+            std::
+        } else {
             std::ffi::CString::new("memory.max_usage_in_bytes").unwrap();
+        }
         let ret = unsafe {
             cgroup_get_value_uint64(
                 self.mem_controller,
@@ -230,4 +242,8 @@ impl Drop for Cgroup {
             cgroup_free(&mut self.cgroup);
         }
     }
+}
+
+fn check_admin_privilege() -> bool {
+    users::get_current_uid() == 0
 }
