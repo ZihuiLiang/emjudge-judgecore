@@ -1,6 +1,6 @@
 [package]
 name = "emjudge-judgecore"
-version = "0.1.9"
+version = "0.1.10"
 edition = "2021"
 links = "cgroup"
 build = "build.rs"
@@ -38,6 +38,7 @@ optional = true
 [features]
 quantity = []
 settings = []
+cgroup_v2 = []
 cgroup = ["quantity"]
 program = ["settings"]
 result = ["program", "quantity"]
@@ -46,6 +47,7 @@ run = ["result", "cgroup", "tokio"]
 test = ["run", "compile"]
 default = ["result"]
 full = ["test"]
+full_v2 = ["full", "cgroup_v2"]
 
 [build-dependencies]
 pkg-config = "0.3.16"

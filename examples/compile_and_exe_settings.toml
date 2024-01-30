@@ -62,11 +62,11 @@ compile_command = """
 rustc main.rs -o main"""
 language_info_command = "rustc --version"
 
-#[languages.Julia]
-#exe_command = """
-#julia --startup-file=no main.jl"""
-#exe_files = ["main.jl"]
-#language_info_command = "julia --version"
+[languages.Julia]
+exe_command = """
+julia --startup-file=no main.jl"""
+exe_files = ["main.jl"]
+language_info_command = "julia --version"
 
 [languages.Smalltalk]
 exe_command = """

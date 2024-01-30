@@ -41,6 +41,7 @@ extern "C" {
     fn cgroup_attach_task_pid(cgroup: *mut libc::c_void, pid: libc::pid_t) -> libc::c_int;
     fn cgroup_free(cgroup: *mut *mut libc::c_void);
     fn cgroup_delete_cgroup_ext(cgroup: *mut libc::c_void, flags: libc::c_int) -> libc::c_int;
+    #[cfg(feature="cgroup_v2")]
     fn cgroup_setup_mode() -> libc::c_int;
 }
 
@@ -64,7 +65,12 @@ impl Cgroup {
         }
         let cgroup_name = std::ffi::CString::new(cgroup_name).unwrap();
         let mut cgroup = unsafe { cgroup_new_cgroup(cgroup_name.as_ptr()) };
-        let is_v2 = unsafe { cgroup_setup_mode() } == 3;
+        let is_v2 = {
+            #[cfg(feature="cgroup_v2")]
+            unsafe { cgroup_setup_mode() == 3}
+            #[cfg(not(feature="cgroup_v2"))]
+            false
+        };
         if cgroup.is_null() {
             return Err("cgroup_new_cgroup() failed".to_string());
         }

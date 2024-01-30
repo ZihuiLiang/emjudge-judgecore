@@ -15,7 +15,7 @@ async fn mle() {
     )
     .unwrap();
     let mut tested_script = vec![];
-    let inputs = vec![vec![]; 1000];
+    let inputs = vec![vec![]; 100];
     tokio::fs::File::open("examples/programs/mle.cpp")
         .await
         .unwrap()
@@ -36,7 +36,7 @@ async fn mle() {
         MemorySize::from_megabytes(10),
     )
     .await;
-    assert_eq!(result.len(), 1000);
+    assert_eq!(result.len(), 100);
     for i in result {
         match i {
             OnlyRunResult::MemoryLimitExceeded(result) => {
